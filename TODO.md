@@ -20,7 +20,7 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 - [x] Kostenparameter für parallele Abfragen optimiert (parallel_setup_cost=100, parallel_tuple_cost=0.01)
 - [x] Spezielle SQL-Funktionen für parallele analytische Verarbeitung entwickelt
 - [x] Automatische Optimierung von Tabellen und Indizes für Parallelität
-- [x] Verteilungsstrategien für Daten auf Cluster-Knoten weiter optimieren
+- [x] Verteilungsstrategien für Daten auf Cluster-Knoten optimiert
 
 ## Phase 2: Skalierbarkeit und Hochverfügbarkeit
 
@@ -30,9 +30,9 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 - [x] Rolling-Updates ohne Ausfallzeit ermöglichen
 
 ### Lastverteilung verbessern
-- [ ] Query-Router für optimale Workload-Verteilung entwickeln
-- [ ] Resource-Pooling für isolierte Workloads einrichten
-- [ ] Adaptive Query-Ausführung basierend auf Knotenauslastung
+- [x] Query-Router für optimale Workload-Verteilung entwickeln
+- [x] Resource-Pooling für isolierte Workloads einrichten
+- [x] Adaptive Query-Ausführung basierend auf Knotenauslastung
 
 ### Hochverfügbarkeit ausbauen
 - [ ] Automatisches Failover mit pgBouncer und Patroni integrieren
