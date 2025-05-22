@@ -1,0 +1,82 @@
+groups:
+  - name: postgres_alerts
+    rules:
+      # Warnung bei hoher CPU-Auslastung
+      - alert: PostgreSQLHighCPUUsage
+        expr: rate(process_cpu_seconds_total{service="exapg-postgresql"}[1m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL hohe CPU-Auslastung"
+          description: "PostgreSQL-Instance {{ $labels.instance }} nutzt mehr als 80% CPU für über 5 Minuten."
+
+      # Warnung bei fast vollem Speicherplatz
+      - alert: PostgreSQLDiskSpaceRunningOut
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"} / node_filesystem_size_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"} * 100) < 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL Speicherplatz wird knapp"
+          description: "PostgreSQL-Instance {{ $labels.instance }} hat weniger als 10% freien Speicherplatz."
+
+      # Kritischer Alarm bei vollem Speicherplatz
+      - alert: PostgreSQLDiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"} / node_filesystem_size_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"} * 100) < 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL kritischer Speicherplatzmangel"
+          description: "PostgreSQL-Instance {{ $labels.instance }} hat weniger als 5% freien Speicherplatz."
+
+      # Warnung bei zu vielen aktiven Verbindungen
+      - alert: PostgreSQLTooManyConnections
+        expr: sum(pg_stat_activity_count{service="exapg-postgresql"}) > (pg_settings_max_connections{service="exapg-postgresql"} * 0.8)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL zu viele Verbindungen"
+          description: "PostgreSQL-Instance {{ $labels.instance }} hat mehr als 80% der maximalen Verbindungen in Nutzung."
+
+      # Warnung bei langsamem Abfragen
+      - alert: PostgreSQLSlowQueries
+        expr: pg_stat_activity_max_tx_duration{service="exapg-postgresql"} > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL langsame Abfragen"
+          description: "PostgreSQL-Instance {{ $labels.instance }} hat Transaktionen, die länger als 5 Minuten dauern."
+
+      # Warnung bei erhöhter Deadlock-Rate
+      - alert: PostgreSQLDeadlocks
+        expr: rate(pg_stat_database_deadlocks{service="exapg-postgresql"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL Deadlocks"
+          description: "PostgreSQL-Instance {{ $labels.instance }} hat Deadlocks in den letzten 5 Minuten."
+
+      # Warnung bei hoher Speichernutzung
+      - alert: PostgreSQLHighMemoryUsage
+        expr: (process_resident_memory_bytes{service="exapg-postgresql"} / on(instance) node_memory_MemTotal_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL hohe Speichernutzung"
+          description: "PostgreSQL-Instance {{ $labels.instance }} nutzt mehr als 80% des verfügbaren Speichers."
+
+      # Citus-spezifische Warnung für Cluster-Health
+      - alert: CitusNodeOffline
+        expr: pg_stat_activity_count{datname="exadb", state="active"} < 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Citus-Knoten offline"
+          description: "Ein Citus-Knoten ist möglicherweise offline oder nicht erreichbar." 

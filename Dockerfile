@@ -1,0 +1,59 @@
+FROM postgres:15
+
+# Installiere benötigte Pakete
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates \
+       curl \
+       wget \
+       gnupg \
+       lsb-release \
+       locales \
+       postgresql-contrib \
+       python3-pip \
+       build-essential \
+       libpq-dev \
+       postgresql-server-dev-15 \
+       git \
+    && rm -rf /var/lib/apt/lists/*
+
+# TimescaleDB hinzufügen (für Zeitreihenanalyse)
+RUN echo "deb https://packagecloud.io/timescale/timescaledb/debian/ $(lsb_release -c -s) main" > /etc/apt/sources.list.d/timescaledb.list \
+    && wget --quiet -O - https://packagecloud.io/timescale/timescaledb/gpgkey | apt-key add - \
+    && apt-get update \
+    && apt-get install -y timescaledb-2-postgresql-15 \
+    && rm -rf /var/lib/apt/lists/*
+
+# PostGIS hinzufügen
+RUN apt-get update \
+    && apt-get install -y postgresql-15-postgis-3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# pgvector installieren
+RUN cd /tmp \
+    && git clone --branch v0.5.1 https://github.com/pgvector/pgvector.git \
+    && cd pgvector \
+    && make \
+    && make install \
+    && cd .. \
+    && rm -rf pgvector
+
+# Setze Locale auf Deutsch
+RUN localedef -i de_DE -c -f UTF-8 -A /usr/share/locale/locale.alias de_DE.UTF-8
+ENV LANG de_DE.UTF-8
+ENV LC_ALL de_DE.UTF-8
+
+# Erstelle Verzeichnisse für PostgreSQL Konfiguration
+RUN mkdir -p /etc/postgresql/conf.d
+
+# Arbeitsverzeichnis
+WORKDIR /var/lib/postgresql
+
+# Standardport
+EXPOSE 5432
+
+# Healthcheck definieren
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD pg_isready -U postgres || exit 1
+
+CMD ["postgres"]

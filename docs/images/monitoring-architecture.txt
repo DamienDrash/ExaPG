@@ -1,0 +1,56 @@
+@startuml
+!define RECTANGLE class
+
+skinparam component {
+  BackgroundColor<<PostgreSQL>> LightBlue
+  BackgroundColor<<Monitor>> LightGreen
+  BorderColor Black
+  ArrowColor Black
+}
+
+package "ExaPG Database Cluster" {
+  [Coordinator] <<PostgreSQL>> as coord
+  [Worker 1] <<PostgreSQL>> as worker1
+  [Worker 2] <<PostgreSQL>> as worker2
+}
+
+package "Monitoring Stack" {
+  [PostgreSQL Exporter] <<Monitor>> as pg_exporter
+  [Node Exporter] <<Monitor>> as node_exporter
+  [Prometheus] <<Monitor>> as prometheus
+  [Alertmanager] <<Monitor>> as alertmanager
+  [Grafana] <<Monitor>> as grafana
+
+  prometheus --> pg_exporter : scrapes
+  prometheus --> node_exporter : scrapes
+  prometheus --> alertmanager : sends alerts
+  grafana --> prometheus : queries
+
+  note right of grafana
+    Dashboards:
+    - ExaPG Overview
+    - Analytical Performance
+  end note
+
+  note right of alertmanager
+    Notifications:
+    - Email
+    - Webhook
+    - Other integrations
+  end note
+}
+
+pg_exporter --> coord : collects metrics
+pg_exporter ..> worker1 : collects metrics
+pg_exporter ..> worker2 : collects metrics
+
+node_exporter -[dashed]-> coord : system metrics
+node_exporter -[dashed]-> worker1 : system metrics
+node_exporter -[dashed]-> worker2 : system metrics
+
+[Admin User] as admin
+admin --> grafana : views
+admin --> prometheus : queries
+admin --> alertmanager : manages alerts
+
+@enduml 

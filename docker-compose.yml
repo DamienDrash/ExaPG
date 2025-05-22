@@ -1,0 +1,110 @@
+version: '3.8'
+
+networks:
+  citus_network:
+    driver: bridge
+
+# Basis-Service-Definition für PostgreSQL
+x-postgres-service: &postgres-service
+  build:
+    context: .
+    dockerfile: Dockerfile.citus
+  restart: unless-stopped
+  environment:
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    POSTGRES_DB: ${POSTGRES_DB}
+    TZ: ${TIMEZONE}
+    MAX_PARALLEL_WORKERS: ${MAX_PARALLEL_WORKERS}
+    EFFECTIVE_CACHE_SIZE: ${EFFECTIVE_CACHE_SIZE}
+    SHARED_BUFFERS: ${SHARED_BUFFERS}
+    WORK_MEM: ${WORK_MEM}
+    DEPLOYMENT_MODE: ${DEPLOYMENT_MODE}
+    WORKER_COUNT: ${WORKER_COUNT}
+  command: postgres -c config_file=/etc/postgresql/postgresql.conf
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 30s
+  shm_size: ${SHARED_MEMORY_SIZE}
+  networks:
+    - citus_network
+
+services:
+  # Koordinator-Knoten (immer vorhanden)
+  coordinator:
+    <<: *postgres-service
+    container_name: ${CONTAINER_NAME}-coordinator
+    hostname: coordinator
+    volumes:
+      - coordinator_data:/var/lib/postgresql/data
+      - ./config/postgresql-coordinator.conf:/etc/postgresql/postgresql.conf
+      - ./config/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./scripts/init-coordinator.sh:/docker-entrypoint-initdb.d/init.sh
+    ports:
+      - "${COORDINATOR_PORT}:5432"
+    deploy:
+      resources:
+        limits:
+          memory: ${COORDINATOR_MEMORY_LIMIT}
+        reservations:
+          memory: ${SHARED_MEMORY_SIZE}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # Worker-Knoten 1 (nur im Cluster-Modus)
+  worker1:
+    <<: *postgres-service
+    container_name: ${CONTAINER_NAME}-worker1
+    hostname: worker1
+    volumes:
+      - worker1_data:/var/lib/postgresql/data
+      - ./config/postgresql-worker.conf:/etc/postgresql/postgresql.conf
+      - ./config/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./scripts/init-worker.sh:/docker-entrypoint-initdb.d/init.sh
+    ports:
+      - "${WORKER_PORT_START}:5432"
+    deploy:
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT}
+        reservations:
+          memory: ${SHARED_MEMORY_SIZE}
+    profiles:
+      - cluster
+
+  # Worker-Knoten 2 (nur im Cluster-Modus)
+  worker2:
+    <<: *postgres-service
+    container_name: ${CONTAINER_NAME}-worker2
+    hostname: worker2
+    volumes:
+      - worker2_data:/var/lib/postgresql/data
+      - ./config/postgresql-worker.conf:/etc/postgresql/postgresql.conf
+      - ./config/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./scripts/init-worker.sh:/docker-entrypoint-initdb.d/init.sh
+    ports:
+      - "${WORKER_PORT_START_2:-5434}:5432"
+    deploy:
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT}
+        reservations:
+          memory: ${SHARED_MEMORY_SIZE}
+    profiles:
+      - cluster
+
+volumes:
+  coordinator_data:
+    driver: local
+  worker1_data:
+    driver: local
+  worker2_data:
+    driver: local 

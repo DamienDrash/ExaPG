@@ -1,0 +1,83 @@
+FROM citusdata/citus:12.1
+
+# Installiere Build-Abhängigkeiten
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    libcurl4-openssl-dev \
+    libmariadb-dev \
+    libpq-dev \
+    libsqlite3-dev \
+    libssl-dev \
+    postgresql-server-dev-15 \
+    unzip \
+    wget \
+    libhiredis-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Setze Umgebungsvariablen für die Kompilierung
+ENV PG_CONFIG=/usr/lib/postgresql/15/bin/pg_config
+
+# MongoDB FDW
+RUN cd /tmp && \
+    git clone https://github.com/EnterpriseDB/mongo_fdw.git && \
+    cd mongo_fdw && \
+    make USE_PGXS=1 && \
+    make USE_PGXS=1 install
+
+# MySQL FDW
+RUN cd /tmp && \
+    git clone https://github.com/EnterpriseDB/mysql_fdw.git && \
+    cd mysql_fdw && \
+    make USE_PGXS=1 && \
+    make USE_PGXS=1 install
+
+# SQLite FDW
+RUN cd /tmp && \
+    git clone https://github.com/pgspider/sqlite_fdw.git && \
+    cd sqlite_fdw && \
+    make USE_PGXS=1 && \
+    make USE_PGXS=1 install
+
+# TDS FDW (für SQL Server)
+RUN apt-get update && apt-get install -y freetds-dev && \
+    cd /tmp && \
+    git clone https://github.com/tds-fdw/tds_fdw.git && \
+    cd tds_fdw && \
+    make USE_PGXS=1 && \
+    make USE_PGXS=1 install && \
+    rm -rf /var/lib/apt/lists/*
+
+# Redis FDW
+RUN cd /tmp && \
+    git clone https://github.com/pg-redis-fdw/redis_fdw.git && \
+    cd redis_fdw && \
+    make USE_PGXS=1 && \
+    make USE_PGXS=1 install
+
+# CSV FDW (Multicorn)
+RUN apt-get update && apt-get install -y python3-dev python3-pip && \
+    pip3 install multicorn && \
+    pip3 install csvkit && \
+    rm -rf /var/lib/apt/lists/*
+
+# Installiere pgAgent für die ETL-Automatisierung
+RUN apt-get update && apt-get install -y pgagent && \
+    rm -rf /var/lib/apt/lists/*
+
+# Bereinige Build-Dateien
+RUN rm -rf /tmp/*
+
+# Zusätzliche Debugging-Unterstützung
+RUN apt-get update && apt-get install -y postgresql-15-pgagent postgresql-15-pgtap && \
+    rm -rf /var/lib/apt/lists/*
+
+# Erstelle Verzeichnis für benutzerdefinierte Konfigurationen
+RUN mkdir -p /docker-entrypoint-initdb.d/configs
+
+# Kopiere Initialisierungsskript für FDWs
+COPY scripts/init-fdw.sh /docker-entrypoint-initdb.d/
+RUN chmod +x /docker-entrypoint-initdb.d/init-fdw.sh 

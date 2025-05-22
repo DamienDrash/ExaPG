@@ -1,0 +1,147 @@
+pg_replication:
+  query: |
+    SELECT
+      CASE WHEN pg_is_in_recovery() THEN 1 ELSE 0 END AS is_replica,
+      CASE WHEN pg_is_in_recovery() THEN 0 ELSE 1 END AS is_primary,
+      COALESCE(EXTRACT(EPOCH FROM (now() - pg_last_xact_replay_timestamp())), 0) as lag_seconds
+    FROM pg_stat_replication
+  metrics:
+    - is_replica:
+        usage: "GAUGE"
+        description: "1 if node is a replica, 0 if primary"
+    - is_primary:
+        usage: "GAUGE"
+        description: "1 if node is a primary, 0 if replica"
+    - lag_seconds:
+        usage: "GAUGE"
+        description: "Replication lag in seconds"
+
+pg_postmaster:
+  query: |
+    SELECT
+      pg_postmaster_start_time as start_time_seconds,
+      EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time)) as uptime_seconds
+    FROM pg_postmaster_start_time()
+  metrics:
+    - start_time_seconds:
+        usage: "GAUGE"
+        description: "PostgreSQL server start time in seconds since Unix epoch"
+    - uptime_seconds:
+        usage: "GAUGE"
+        description: "PostgreSQL server uptime in seconds"
+
+pg_stat_statements:
+  query: |
+    SELECT
+      calls,
+      total_exec_time / 1000 as total_time_seconds,
+      mean_exec_time / 1000 as mean_time_seconds,
+      max_exec_time / 1000 as max_time_seconds,
+      stddev_exec_time / 1000 as stddev_time_seconds,
+      rows as affected_rows,
+      query
+    FROM pg_stat_statements
+    ORDER BY total_exec_time DESC
+    LIMIT 10
+  metrics:
+    - calls:
+        usage: "COUNTER"
+        description: "Number of times query has been executed"
+    - total_time_seconds:
+        usage: "COUNTER"
+        description: "Total time spent executing query in seconds"
+    - mean_time_seconds:
+        usage: "GAUGE"
+        description: "Mean time spent executing query in seconds"
+    - max_time_seconds:
+        usage: "GAUGE"
+        description: "Maximum time spent executing query in seconds"
+    - stddev_time_seconds:
+        usage: "GAUGE"
+        description: "Standard deviation of time spent executing query in seconds"
+    - affected_rows:
+        usage: "COUNTER"
+        description: "Number of rows affected by query"
+    - query:
+        usage: "LABEL"
+        description: "Query text"
+
+pg_citus_stats:
+  query: |
+    SELECT
+      nodeid,
+      CASE groupid WHEN 0 THEN 'coordinator' ELSE 'worker' END as node_type,
+      nodename,
+      nodeport,
+      CASE isactive WHEN true THEN 1 ELSE 0 END as is_active
+    FROM pg_dist_node
+  metrics:
+    - nodeid:
+        usage: "LABEL"
+        description: "Citus node ID"
+    - node_type:
+        usage: "LABEL"
+        description: "Citus node type (coordinator or worker)"
+    - nodename:
+        usage: "LABEL"
+        description: "Citus node hostname"
+    - nodeport:
+        usage: "LABEL"
+        description: "Citus node port"
+    - is_active:
+        usage: "GAUGE"
+        description: "1 if node is active, 0 otherwise"
+
+pg_columnar_stats:
+  query: |
+    SELECT
+      relname as table_name,
+      n_live_chunks as chunk_count,
+      CASE WHEN relname LIKE '%columnar%' THEN 1 ELSE 0 END as is_columnar
+    FROM pg_stat_user_tables
+    WHERE relname LIKE '%columnar%'
+    OR relname LIKE '%sales%'
+  metrics:
+    - table_name:
+        usage: "LABEL"
+        description: "Table name"
+    - chunk_count:
+        usage: "GAUGE"
+        description: "Number of live chunks in table"
+    - is_columnar:
+        usage: "GAUGE"
+        description: "1 if table is columnar, 0 otherwise"
+
+pg_database_size:
+  query: |
+    SELECT
+      pg_database.datname as database,
+      pg_database_size(pg_database.datname) as size_bytes
+    FROM pg_database
+  metrics:
+    - database:
+        usage: "LABEL"
+        description: "Database name"
+    - size_bytes:
+        usage: "GAUGE"
+        description: "Database size in bytes"
+
+pg_table_size:
+  query: |
+    SELECT
+      schemaname as schema,
+      relname as table,
+      pg_total_relation_size(schemaname || '.' || relname) as size_bytes
+    FROM pg_stat_user_tables
+    ORDER BY pg_total_relation_size(schemaname || '.' || relname) DESC
+    LIMIT 10
+  metrics:
+    - schema:
+        usage: "LABEL"
+        description: "Schema name"
+    - table:
+        usage: "LABEL"
+        description: "Table name"
+    - size_bytes:
+        usage: "GAUGE"
+        description: "Table size in bytes" 

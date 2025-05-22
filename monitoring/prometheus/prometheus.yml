@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "postgres_exporter"
+    static_configs:
+      - targets: ["postgres_exporter:9187"]
+        labels:
+          service: "exapg-postgresql"
+          role: "database"
+
+  - job_name: "node_exporter"
+    static_configs:
+      - targets: ["node_exporter:9100"]
+        labels:
+          service: "exapg-host"
+          role: "system"
+
+  # Wenn im Cluster-Modus auch Worker-Knoten überwachen
+  - job_name: "postgres_exporter_workers"
+    static_configs:
+      - targets: ["postgres_exporter:9187"]
+        labels:
+          service: "exapg-postgresql"
+          role: "coordinator" 

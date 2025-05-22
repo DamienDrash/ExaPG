@@ -1,0 +1,123 @@
+version: '3'
+
+services:
+  coordinator:
+    build:
+      context: .
+      dockerfile: Dockerfile.fdw
+    container_name: exapg-coordinator
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      PGDATA: /var/lib/postgresql/data
+      CITUS_ROLE: ${CITUS_ROLE:-coordinator}
+      CITUS_COORDINATOR_HOST: ${CITUS_COORDINATOR_HOST:-coordinator}
+      SHARED_BUFFERS: ${SHARED_BUFFERS:-2GB}
+      WORK_MEM: ${WORK_MEM:-128MB}
+    volumes:
+      - coordinator-data:/var/lib/postgresql/data
+      - ./scripts:/scripts
+      - ./config:/config
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - exapg-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAgent-Service für ETL-Automatisierung
+  pgagent:
+    image: bitnami/pgbouncer:latest
+    container_name: exapg-pgagent
+    environment:
+      POSTGRESQL_HOST: coordinator
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_USERNAME: ${POSTGRES_USER:-postgres}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRESQL_DATABASE: ${POSTGRES_DB:-postgres}
+      PGBOUNCER_DATABASE: ${POSTGRES_DB:-postgres}
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: 100
+    depends_on:
+      - coordinator
+    networks:
+      - exapg-network
+    restart: unless-stopped
+    command: >
+      sh -c "
+        apt-get update && apt-get install -y pgagent postgresql-client &&
+        echo '*/5 * * * * postgres pgagent -l 2 -s /tmp/pgagent.log hostaddr=coordinator dbname=exadb user=postgres' > /etc/cron.d/pgagent &&
+        cron -f
+      "
+
+  # Optional: Demo-Datenquellen für FDW-Tests
+  mysql:
+    image: mysql:8.0
+    container_name: exapg-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: mysqlroot
+      MYSQL_DATABASE: inventory
+      MYSQL_USER: mysql_user
+      MYSQL_PASSWORD: mysql_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - exapg-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  mongodb:
+    image: mongo:6.0
+    container_name: exapg-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_user
+      MONGO_INITDB_ROOT_PASSWORD: mongo_password
+      MONGO_INITDB_DATABASE: userdb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - exapg-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.0
+    container_name: exapg-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - exapg-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  exapg-network:
+    driver: bridge
+
+volumes:
+  coordinator-data:
+  mysql-data:
+  mongodb-data:
+  redis-data: 

@@ -1,0 +1,59 @@
+# PostgreSQL Daten und Logs
+data/
+pgdata/
+*.log
+*.log.*
+pg_log/
+postgresql.log
+
+# Docker-spezifische Dateien
+.docker/
+docker-compose.override.yml
+
+# Umgebungsvariablen
+.env
+.env.*
+!.env.example
+
+# Monitoring-Daten
+monitoring/grafana/data/
+monitoring/prometheus/data/
+monitoring/alertmanager/data/
+
+# Backup-Dateien
+pgbackrest/backup/
+*.backup
+*.dump
+*.sql.gz
+*.bak
+
+# Temporäre Dateien
+*.tmp
+*.temp
+*.swp
+*~
+
+# Betriebssystem-Dateien
+.DS_Store
+Thumbs.db
+
+# IDE-spezifische Dateien
+.idea/
+.vscode/
+*.sublime-*
+
+# Kompilierte Binärdateien
+*.so
+*.o
+*.pyc
+__pycache__/
+
+# Ergebnisdateien und Tests
+performance_results*.csv
+*-tests.log
+test-results/
+
+# Node.js (für Grafana Dashboards)
+node_modules/
+npm-debug.log
+yarn-error.log 

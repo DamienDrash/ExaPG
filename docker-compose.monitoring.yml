@@ -1,0 +1,110 @@
+networks:
+  citus_network:
+    external: true
+    name: exapg_citus_network
+  monitoring_network:
+    driver: bridge
+
+services:
+  # PostgreSQL-Exporter für Metriken
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: exapg-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${CONTAINER_NAME}-coordinator:5432/${POSTGRES_DB}?sslmode=disable"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
+    volumes:
+      - ./monitoring/postgres_exporter/queries.yaml:/etc/postgres_exporter/queries.yaml:ro
+    ports:
+      - "${PG_EXPORTER_PORT}:9187"
+    restart: unless-stopped
+    networks:
+      - citus_network
+      - monitoring_network
+    depends_on:
+      - node_exporter
+
+  # Node-Exporter für Systemmetriken
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: exapg-node-exporter
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($|/)'
+    volumes:
+      - '/:/host:ro,rslave'
+    ports:
+      - "${NODE_EXPORTER_PORT}:9100"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  # Prometheus für Metrik-Sammlung
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: exapg-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME}'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+    depends_on:
+      - postgres_exporter
+      - node_exporter
+
+  # Alertmanager für Benachrichtigungen
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: exapg-alertmanager
+    environment:
+      - ALERT_EMAIL_FROM=${ALERT_EMAIL_FROM}
+      - ALERT_EMAIL_TO=${ALERT_EMAIL_TO}
+      - ALERT_SMTP_SERVER=${ALERT_SMTP_SERVER}
+      - ALERT_SMTP_USER=${ALERT_SMTP_USER}
+      - ALERT_SMTP_PASSWORD=${ALERT_SMTP_PASSWORD}
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "${ALERTMANAGER_PORT}:9093"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+    depends_on:
+      - prometheus
+
+  # Grafana für Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: exapg-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
