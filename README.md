@@ -1,6 +1,49 @@
-# ExaPG - PostgreSQL als Exasol-Alternative
+# ExaPG
 
-ExaPG ist eine PostgreSQL-basierte Lösung für analytische Workloads, die als Alternative zu Exasol konzipiert wurde. Die Lösung nutzt die Stärken von PostgreSQL und erweitert diese durch verschiedene Erweiterungen und Optimierungen für analytische Anwendungsfälle.
+ExaPG ist eine hochleistungsfähige, PostgreSQL-basierte Alternative zu Exasol für analytische Workloads. Die Lösung kombiniert PostgreSQL 15 mit TimescaleDB, PostGIS und pgvector und bietet sowohl Single-Node- als auch Cluster-Deployment mit Citus.
+
+## Übersicht
+
+ExaPG wurde entwickelt, um eine kosteneffiziente, Open-Source-basierte Alternative zu proprietären analytischen Datenbanksystemen zu bieten. Das Projekt konzentriert sich auf die Bereitstellung von:
+
+- **Hochleistungs-Analytik**: Optimiert für analytische Workloads mit Columnar Storage
+- **Skalierbarkeit**: Flexible Deployment-Optionen (Single-Node oder Cluster)
+- **Umfassende Überwachung**: Integriertes Monitoring mit Prometheus und Grafana
+- **Erweiterbarkeit**: Integration mit TimescaleDB, PostGIS und pgvector
+
+## Architektur
+
+ExaPG kann in verschiedenen Modi bereitgestellt werden:
+
+- **Single-Node**: Einfache Bereitstellung für kleinere Workloads
+- **Cluster-Modus**: Verteilte Verarbeitung mit Citus (1 Koordinator, mehrere Worker)
+- **FDW-Modus**: Integration mit externen Datenquellen über Foreign Data Wrapper
+
+## Schnellstart
+
+```bash
+# Single-Node-Modus starten
+./start-exapg.sh
+
+# Cluster-Modus starten (über .env konfigurierbar)
+DEPLOYMENT_MODE=cluster ./start-exapg.sh
+
+# Monitoring-Stack starten
+./start-monitoring.sh
+```
+
+## Komponenten
+
+- **PostgreSQL 15**: Basiskomponente mit analytischen Optimierungen
+- **Citus**: Für horizontale Skalierung und verteilte Abfragen
+- **TimescaleDB**: Für effiziente Zeitreihenanalyse
+- **PostGIS**: Für räumliche Datenanalyse
+- **pgvector**: Für Vektorähnlichkeitssuche und ML-Workloads
+- **Prometheus/Grafana**: Für umfassendes Monitoring
+
+## Lizenz
+
+Dieses Projekt steht unter der [GNU General Public License v3.0](LICENSE).
 
 ## Funktionen
 
@@ -19,20 +62,6 @@ ExaPG ist eine PostgreSQL-basierte Lösung für analytische Workloads, die als A
 - Docker Compose (Version 1.27 oder höher)
 - Mindestens 8 GB RAM für den Single-Node-Modus
 - Mindestens 16 GB RAM für den Cluster-Modus
-
-## Schnellstart
-
-Das System lässt sich einfach mit dem mitgelieferten Startskript starten:
-
-```bash
-./start-exapg.sh
-```
-
-Standardmäßig wird ein Single-Node-Modus gestartet. Für den Cluster-Modus:
-
-```bash
-./start-exapg.sh cluster
-```
 
 ## Testen der Installation
 
@@ -134,17 +163,6 @@ Für den Produktiveinsatz beachten Sie:
 3. Aktivieren Sie SSL für Verbindungen
 4. Konfigurieren Sie regelmäßige Backups
 5. Überwachen Sie die Systemressourcen und PostgreSQL-Metriken
-
-## Architektur
-
-Die Architektur besteht aus folgenden Komponenten:
-
-1. **Koordinator-Knoten**: Verwaltet die Abfragen und Metadaten
-2. **Worker-Knoten**: Speichern und verarbeiten die Daten
-3. **Docker-Netzwerk**: Verbindet alle Komponenten
-4. **Datenvolumes**: Persistente Speicherung für Datenbanken
-
-Im Single-Node-Modus wird nur der Koordinator-Knoten gestartet.
 
 ## Vergleich mit Exasol
 
