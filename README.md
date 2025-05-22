@@ -28,6 +28,9 @@ ExaPG kann in verschiedenen Modi bereitgestellt werden:
 # Cluster-Modus starten (über .env konfigurierbar)
 DEPLOYMENT_MODE=cluster ./start-exapg.sh
 
+# Citus-Cluster mit optimierten Verteilungsstrategien starten
+./start-exapg-citus.sh
+
 # Monitoring-Stack starten
 ./start-monitoring.sh
 ```
@@ -49,6 +52,7 @@ Dieses Projekt steht unter der [GNU General Public License v3.0](LICENSE).
 
 - **Clustering und Skalierung** mit Citus für horizontale Skalierung
 - **Spaltenorientierte Speicherung** mit Citus Columnar für verbesserte analytische Performance und Datenkompression
+- **Optimierte Verteilungsstrategien** für automatische Datenverteilung auf Cluster-Knoten mit Exasol-ähnlicher Funktionalität
 - **Umfassende Datenintegration** mit Foreign Data Wrappers und ETL-Automatisierung
 - **Zeitreihenanalyse** mit TimescaleDB für effiziente Speicherung und Abfrage von Zeitreihendaten
 - **Räumliche Daten** mit PostGIS für Geodaten-Analyse
@@ -171,6 +175,7 @@ Für den Produktiveinsatz beachten Sie:
 | Spaltenorientierte Speicherung | Ja (via Citus Columnar) | Vollständig |
 | In-Memory-Verarbeitung | Teilweise | Vollständig |
 | Clustering | Ja (via Citus) | Ja |
+| Automatische Datenverteilung | Ja (optimierte Strategien) | Ja |
 | Virtuelle Schemas | Ja (via Foreign Data Wrappers) | Ja |
 | Datenintegration | Umfassend (vielfältige FDWs) | Begrenzt (JDBC-basiert) |
 | ETL-Automatisierung | Ja (pgAgent) | Ja (eigene Scheduler) |
@@ -285,4 +290,59 @@ Benachrichtigungen können per E-Mail oder Webhook-Integration an externe System
 
 ```bash
 ./stop-monitoring.sh
-``` 
+```
+
+## Optimierte Verteilungsstrategien
+
+ExaPG implementiert fortschrittliche Datenverteilungsstrategien, die mit Exasol vergleichbar sind:
+
+### Hauptfunktionen
+
+- **Automatische Shardverteilung**: Optimale Verteilung auf Cluster-Knoten basierend auf Datenstatistiken
+- **Intelligente Schlüsselauswahl**: Automatische Ermittlung der besten Verteilungsspalte
+- **Adaptives Rebalancing**: Automatische Neuverteilung bei Last-Ungleichgewichten
+- **Kolokatierte Tabellen**: Automatische Kolokation verwandter Tabellen für effiziente Joins
+- **Referenztabellenreplikation**: Kleine Tabellen werden auf allen Knoten repliziert für bessere Join-Performance
+
+### Verwendung der Verteilungsstrategien
+
+ExaPG bietet vorgefertigte Funktionen zur optimalen Datenverteilung:
+
+```sql
+-- Automatische optimale Verteilung einer Tabelle
+SELECT admin.distribute_table_optimally('public', 'sales');
+
+-- Automatische Verteilung aller Tabellen im Schema
+SELECT admin.distribute_schema('analytics');
+
+-- Tabellen für optimale Joins kolokieren
+SELECT admin.setup_table_colocation(
+    'public', 
+    ARRAY['customers', 'orders', 'order_items']
+);
+
+-- Rebalancing nach Hinzufügen neuer Knoten
+SELECT admin.rebalance_shards();
+
+-- Abfrage mit optimaler Parallelität auf verteilten Daten
+SELECT admin.execute_parallel_distributed('
+    SELECT 
+        date_trunc(''month'', order_date) as month,
+        SUM(order_amount) as total_sales
+    FROM orders
+    GROUP BY 1
+    ORDER BY 1
+');
+```
+
+### Starten des Cluster mit optimierten Verteilungsstrategien
+
+Für die Verwendung des ExaPG-Systems mit optimierten Verteilungsstrategien:
+
+```bash
+./start-exapg-citus.sh
+```
+
+Dies startet ein 3-Knoten-Cluster (1 Coordinator, 2 Worker) mit vorkonfigurierten optimalen Verteilungsstrategien, die mit Exasol vergleichbar sind.
+
+Die automatischen Verteilungsfunktionen ermöglichen eine einfache und effiziente Verwaltung von verteilten Daten ohne manuelle Eingriffe, ähnlich wie bei Exasol. 

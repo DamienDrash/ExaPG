@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  # Coordinator-Node (Master)
+  coordinator:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.citus
+    container_name: exapg-coordinator
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - coordinator-data:/var/lib/postgresql/data
+      - ../../config/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ../../config/postgresql/postgresql-coordinator.conf:/etc/postgresql/postgresql.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - exapg-network
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+
+  # Worker-Nodes
+  worker-1:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.citus
+    container_name: exapg-worker-1
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - worker-1-data:/var/lib/postgresql/data
+      - ../../config/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ../../config/postgresql/postgresql-worker.conf:/etc/postgresql/postgresql.conf
+    depends_on:
+      - coordinator
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - exapg-network
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+
+  worker-2:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.citus
+    container_name: exapg-worker-2
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - worker-2-data:/var/lib/postgresql/data
+      - ../../config/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ../../config/postgresql/postgresql-worker.conf:/etc/postgresql/postgresql.conf
+    depends_on:
+      - coordinator
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - exapg-network
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+
+  # Initialisierer für Cluster-Setup
+  cluster-setup:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.citus
+    container_name: exapg-cluster-setup
+    depends_on:
+      coordinator:
+        condition: service_healthy
+      worker-1:
+        condition: service_healthy
+      worker-2:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      COORDINATOR_HOST: coordinator
+      WORKER_1_HOST: worker-1
+      WORKER_2_HOST: worker-2
+    volumes:
+      - ../../scripts/setup:/setup
+    networks:
+      - exapg-network
+    restart: "no"
+    command: >
+      bash -c "
+        echo 'Warte auf volle Verfügbarkeit der Cluster-Nodes...'
+        sleep 10
+        echo 'Starte Cluster-Einrichtung...'
+        
+        # Verbinde Worker mit Coordinator
+        PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$COORDINATOR_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB -c \"SELECT * FROM citus_add_node('$$WORKER_1_HOST', 5432);\";
+        PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$COORDINATOR_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB -c \"SELECT * FROM citus_add_node('$$WORKER_2_HOST', 5432);\";
+        
+        echo 'Worker-Nodes hinzugefügt, überprüfe Cluster-Status...'
+        PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$COORDINATOR_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB -c \"SELECT * FROM citus_get_active_worker_nodes();\";
+        
+        # Führe das Skript für Datenverteilungsstrategien aus
+        echo 'Installiere optimierte Verteilungsstrategien...'
+        /setup/setup-distribution.sh
+        
+        echo 'Cluster-Einrichtung abgeschlossen'
+      "
+
+networks:
+  exapg-network:
+    driver: bridge
+
+volumes:
+  coordinator-data:
+  worker-1-data:
+  worker-2-data: 

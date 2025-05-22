@@ -20,7 +20,7 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 - [x] Kostenparameter für parallele Abfragen optimiert (parallel_setup_cost=100, parallel_tuple_cost=0.01)
 - [x] Spezielle SQL-Funktionen für parallele analytische Verarbeitung entwickelt
 - [x] Automatische Optimierung von Tabellen und Indizes für Parallelität
-- [ ] Verteilungsstrategien für Daten auf Cluster-Knoten weiter optimieren
+- [x] Verteilungsstrategien für Daten auf Cluster-Knoten weiter optimieren
 
 ## Phase 2: Skalierbarkeit und Hochverfügbarkeit
 
