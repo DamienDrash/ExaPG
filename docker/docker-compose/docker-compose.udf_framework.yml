@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # ExaPG-Hauptdatenbank mit UDF-Framework
+  exapg:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.udf_framework
+    container_name: exapg-udf
+    hostname: exapg
+    ports:
+      - "5432:5432"
+    volumes:
+      - exapg-data:/var/lib/postgresql/data
+      - ../../sql:/sql
+      - ../../scripts:/scripts
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      # Optimierungen für UDFs und analytische Workloads
+      POSTGRES_INITDB_ARGS: --data-checksums
+      # UDF-Framework Konfiguration
+      UDF_FRAMEWORK_ENABLED: "true"
+      UDF_ENABLE_PYTHON: "true"
+      UDF_ENABLE_R: "true"
+      UDF_ENABLE_LUA: "true"
+    networks:
+      - exapg-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Jupyter Notebook für die UDF-Entwicklung und Tests
+  jupyter:
+    image: jupyter/datascience-notebook:latest
+    container_name: exapg-jupyter
+    hostname: jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - jupyter-data:/home/jovyan/work
+      - ../../sql:/home/jovyan/work/sql
+      - ../../scripts:/home/jovyan/work/scripts
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      GRANT_SUDO: "yes"
+    user: root
+    networks:
+      - exapg-network
+    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
+
+  # R Studio für die R-UDF-Entwicklung
+  rstudio:
+    image: rocker/rstudio:latest
+    container_name: exapg-rstudio
+    hostname: rstudio
+    ports:
+      - "8787:8787"
+    volumes:
+      - r-data:/home/rstudio
+      - ../../sql:/home/rstudio/sql
+      - ../../scripts:/home/rstudio/scripts
+    environment:
+      PASSWORD: ${RSTUDIO_PASSWORD:-rstudio}
+      USER: ${RSTUDIO_USER:-rstudio}
+    networks:
+      - exapg-network
+
+  # UDF Setup Helper
+  setup:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.udf_framework
+    container_name: exapg-udf-setup
+    hostname: exapg-udf-setup
+    depends_on:
+      - exapg
+    volumes:
+      - ../../scripts:/scripts
+      - ../../sql:/sql
+    environment:
+      POSTGRES_HOST: exapg
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    networks:
+      - exapg-network
+    command: >
+      bash -c "
+        echo 'Warte auf Verfügbarkeit der Datenbank...'
+        sleep 10
+        echo 'Starte UDF-Framework Einrichtung...'
+        /scripts/setup/setup-udf-framework.sh
+        echo 'UDF-Framework wurde eingerichtet.'
+      "
+    restart: "no"
+
+networks:
+  exapg-network:
+    driver: bridge
+
+volumes:
+  exapg-data:
+  jupyter-data:
+  r-data: 

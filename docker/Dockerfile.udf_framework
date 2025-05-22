@@ -1,0 +1,100 @@
+FROM postgres:15
+
+# Metadaten
+LABEL maintainer="ExaPG Team"
+LABEL description="PostgreSQL mit UDF-Framework für ExaPG (Exasol-kompatibel)"
+LABEL version="1.0"
+
+# Umgebungsvariablen
+ENV POSTGRES_PASSWORD=postgres
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_DB=postgres
+
+# Installiere Build-Abhängigkeiten und UDF-Voraussetzungen
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    luajit \
+    libluajit-5.1-dev \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-numpy \
+    python3-pandas \
+    python3-sklearn \
+    python3-matplotlib \
+    python3-statsmodels \
+    r-base \
+    r-base-dev \
+    r-cran-tidyverse \
+    r-cran-data.table \
+    r-cran-rpostgres \
+    r-cran-dbi \
+    unixodbc-dev \
+    postgresql-plpython3-15 \
+    locales \
+    && rm -rf /var/lib/apt/lists/*
+
+# Setze Locale
+RUN sed -i -e 's/# de_DE.UTF-8 UTF-8/de_DE.UTF-8 UTF-8/' /etc/locale.gen && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG=de_DE.UTF-8
+ENV LANG de_DE.UTF-8
+ENV LC_ALL de_DE.UTF-8
+
+# Installiere PL/R für PostgreSQL
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-15-plr \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installiere zusätzliche Python-Pakete
+RUN pip3 install --no-cache-dir \
+    psycopg2-binary \
+    tensorflow \
+    keras \
+    xgboost \
+    lightgbm \
+    plotly \
+    flask \
+    sqlalchemy
+
+# Installiere Lua-Pakete und LuaRocks (Paketmanager für Lua)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    luarocks \
+    && rm -rf /var/lib/apt/lists/* \
+    && luarocks install luasocket \
+    && luarocks install luajson \
+    && luarocks install luafilesystem
+
+# Installiere pllua (PostgreSQL Lua-Erweiterung)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-15-pllua \
+    && rm -rf /var/lib/apt/lists/*
+
+# Setze PostgreSQL-Konfiguration für UDFs
+RUN echo "pllua.on_init = 'require(\"udf_helpers\")'" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "shared_preload_libraries = 'pg_stat_statements'" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "pg_stat_statements.track = all" >> /usr/share/postgresql/postgresql.conf.sample
+
+# Kopiere die SQL-Skripte für das UDF-Framework
+COPY sql/udf_framework/create_udf_framework.sql /docker-entrypoint-initdb.d/
+COPY sql/udf_framework/create_udf_utils.sql /docker-entrypoint-initdb.d/
+COPY sql/udf_framework/example_udfs.sql /docker-entrypoint-initdb.d/
+
+# Kopiere die UDF-Hilfsbibliotheken
+COPY sql/udf_framework/lua/udf_helpers.lua /usr/share/postgresql/15/extension/
+COPY sql/udf_framework/python/udf_helpers.py /usr/lib/python3/dist-packages/
+COPY sql/udf_framework/r/udf_helpers.R /usr/lib/R/site-library/
+
+# Kopiere die Setup-Skripte
+COPY scripts/setup/setup-udf-framework.sh /docker-entrypoint-initdb.d/
+RUN chmod +x /docker-entrypoint-initdb.d/setup-udf-framework.sh
+
+# Healthcheck
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 CMD pg_isready -U postgres || exit 1
+
+EXPOSE 5432
+
+CMD ["postgres"] 

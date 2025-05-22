@@ -47,9 +47,9 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 - [x] Pushdown-Optimierung für Filter und Aggregationen
 
 ### UDF-Framework entwickeln
-- [ ] Integration von LuaJIT oder ähnlichem für Exasol-LUA-Kompatibilität
-- [ ] PL/Python und PL/R für Data-Science-Funktionalitäten ausbauen
-- [ ] Funktionsbibliothek für typische analytische Operationen erstellen
+- [x] Integration von LuaJIT oder ähnlichem für Exasol-LUA-Kompatibilität
+- [x] PL/Python und PL/R für Data-Science-Funktionalitäten ausbauen
+- [x] Funktionsbibliothek für typische analytische Operationen erstellen
 
 ### ETL-Prozesse integrieren
 - [ ] Datenladevorgang beschleunigen (COPY-Befehl optimieren)
