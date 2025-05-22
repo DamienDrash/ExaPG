@@ -31,6 +31,9 @@ DEPLOYMENT_MODE=cluster ./start-exapg.sh
 # Citus-Cluster mit optimierten Verteilungsstrategien starten
 ./start-exapg-citus.sh
 
+# Cluster-Management mit automatischer Cluster-Erweiterung starten
+./start-cluster-management.sh
+
 # Monitoring-Stack starten
 ./start-monitoring.sh
 ```
@@ -53,6 +56,7 @@ Dieses Projekt steht unter der [GNU General Public License v3.0](LICENSE).
 - **Clustering und Skalierung** mit Citus für horizontale Skalierung
 - **Spaltenorientierte Speicherung** mit Citus Columnar für verbesserte analytische Performance und Datenkompression
 - **Optimierte Verteilungsstrategien** für automatische Datenverteilung auf Cluster-Knoten mit Exasol-ähnlicher Funktionalität
+- **Automatische Cluster-Erweiterung** mit dynamischem Hinzufügen/Entfernen von Knoten und Rolling-Updates ohne Ausfallzeit
 - **Umfassende Datenintegration** mit Foreign Data Wrappers und ETL-Automatisierung
 - **Zeitreihenanalyse** mit TimescaleDB für effiziente Speicherung und Abfrage von Zeitreihendaten
 - **Räumliche Daten** mit PostGIS für Geodaten-Analyse
@@ -345,4 +349,60 @@ Für die Verwendung des ExaPG-Systems mit optimierten Verteilungsstrategien:
 
 Dies startet ein 3-Knoten-Cluster (1 Coordinator, 2 Worker) mit vorkonfigurierten optimalen Verteilungsstrategien, die mit Exasol vergleichbar sind.
 
-Die automatischen Verteilungsfunktionen ermöglichen eine einfache und effiziente Verwaltung von verteilten Daten ohne manuelle Eingriffe, ähnlich wie bei Exasol. 
+Die automatischen Verteilungsfunktionen ermöglichen eine einfache und effiziente Verwaltung von verteilten Daten ohne manuelle Eingriffe, ähnlich wie bei Exasol.
+
+## Automatische Cluster-Erweiterung
+
+ExaPG bietet ein dynamisches Cluster-Management-System, das die automatische Skalierung und Verwaltung des Clusters ermöglicht. Diese Funktionalität ist vergleichbar mit der automatischen Skalierbarkeit von Exasol.
+
+### Hauptfunktionen
+
+- **Dynamisches Hinzufügen/Entfernen von Knoten**: Worker-Knoten können zur Laufzeit hinzugefügt oder entfernt werden
+- **Automatische Datenumverteilung**: Bei Änderungen der Cluster-Topologie werden Daten automatisch umverteilt
+- **Rolling-Updates ohne Ausfallzeit**: Aktualisierungen können durchgeführt werden, ohne den Cluster herunterzufahren
+- **Selbstheilende Mechanismen**: Automatische Wiederherstellung bei Knotenausfällen
+- **Benutzerfreundliche Web-UI**: Einfache Verwaltung des Clusters über eine Web-Oberfläche
+
+### Architektur
+
+Das Cluster-Management-System besteht aus folgenden Komponenten:
+
+- **REST-API** (`scripts/cluster-management/cluster_api.py`): Python-basierte API für die Cluster-Verwaltung
+- **Docker Container** (`docker/Dockerfile.cluster-management`): Container für die API
+- **Docker Compose** (`docker/docker-compose/docker-compose.cluster-management.yml`): Definition des Cluster-Management-Stacks
+- **Web-UI** (`scripts/cluster-management/ui`): Einfache Web-Oberfläche für die Cluster-Verwaltung
+
+### Starten des Cluster-Management-Systems
+
+Um das ExaPG Cluster-Management-System zu starten:
+
+```bash
+./start-cluster-management.sh
+```
+
+Dies startet das Cluster-Management mit einem Web-UI auf Port 8080 und einer REST-API auf Port 5000. Nach dem Start können Worker-Knoten dynamisch hinzugefügt oder entfernt werden, entweder über die Web-UI oder über die API.
+
+### API-Endpunkte
+
+Das Cluster-Management-System bietet folgende REST-API-Endpunkte:
+
+- `GET /api/cluster/status`: Aktuellen Status des Clusters abrufen
+- `POST /api/cluster/add-worker`: Neuen Worker-Knoten zum Cluster hinzufügen
+- `POST /api/cluster/remove-worker`: Worker-Knoten aus dem Cluster entfernen
+- `POST /api/cluster/rebalance`: Datenumverteilung im Cluster manuell starten
+- `POST /api/cluster/rolling-update`: Rolling-Update des Clusters durchführen
+
+### Beispiel für die API-Nutzung
+
+```bash
+# Cluster-Status abrufen
+curl http://localhost:5000/api/cluster/status
+
+# Neuen Worker hinzufügen
+curl -X POST http://localhost:5000/api/cluster/add-worker
+
+# Cluster rebalancieren
+curl -X POST http://localhost:5000/api/cluster/rebalance
+```
+
+Die Cluster-Erweiterung ist vollständig automatisiert und bleibt auch nach einem Neustart oder einer neuen Installation erhalten, da alle Konfigurationen persistent gespeichert werden. 

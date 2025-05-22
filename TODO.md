@@ -25,9 +25,9 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 ## Phase 2: Skalierbarkeit und Hochverfügbarkeit
 
 ### Automatische Cluster-Erweiterung implementieren
-- [ ] API für dynamisches Hinzufügen/Entfernen von Worker-Knoten entwickeln
-- [ ] Automatische Datenumverteilung bei Cluster-Änderungen
-- [ ] Rolling-Updates ohne Ausfallzeit ermöglichen
+- [x] API für dynamisches Hinzufügen/Entfernen von Worker-Knoten entwickeln
+- [x] Automatische Datenumverteilung bei Cluster-Änderungen
+- [x] Rolling-Updates ohne Ausfallzeit ermöglichen
 
 ### Lastverteilung verbessern
 - [ ] Query-Router für optimale Workload-Verteilung entwickeln

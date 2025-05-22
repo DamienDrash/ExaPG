@@ -128,6 +128,12 @@ chmod +x scripts/setup/setup-distribution.sh
 
 echo "Starte ExaPG mit Citus für optimierte Datenverteilung..."
 
+# Optionen überprüfen
+if [ "$1" = "--only-config" ]; then
+    echo "Konfigurationsdateien wurden erstellt. Beende ohne Starten der Container."
+    exit 0
+fi
+
 # Docker-Compose-Datei für Citus auswählen und starten
 if command -v docker compose >/dev/null 2>&1; then
     docker compose -f docker/docker-compose/docker-compose.citus.yml up -d
