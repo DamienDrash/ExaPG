@@ -6,8 +6,8 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 
 ### Columnar Storage vollständig implementieren
 - [x] Integration von Apache AGE oder cstore_fdw optimieren
-- [ ] Kompressionsverfahren für analytische Daten einrichten
-- [ ] Partitionierungsstrategien für große Tabellen entwickeln
+- [x] Kompressionsverfahren für analytische Daten einrichten
+- [x] Partitionierungsstrategien für große Tabellen entwickeln
 
 ### In-Memory-Verarbeitung verbessern
 - [ ] Shared-Buffer-Konfiguration für maximale RAM-Nutzung optimieren
