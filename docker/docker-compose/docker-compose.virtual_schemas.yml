@@ -1,0 +1,165 @@
+version: '3.8'
+
+services:
+  # ExaPG-Hauptdatenbank mit Virtual Schemas Support
+  exapg:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.virtual_schemas
+    container_name: exapg-virtual-schemas
+    hostname: exapg
+    ports:
+      - "5432:5432"
+    volumes:
+      - exapg-data:/var/lib/postgresql/data
+      - ../../sql:/sql
+      - ../../scripts:/scripts
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      # Optimierungen für analytische Workloads
+      POSTGRES_INITDB_ARGS: --data-checksums
+      # Virtual Schemas Konfiguration
+      VIRTUAL_SCHEMAS_ENABLED: "true"
+      VS_ENABLE_PUSHDOWN: "true"
+    networks:
+      - exapg-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MySQL als Beispiel-Datenquelle
+  mysql:
+    image: mysql:8.0
+    container_name: exapg-mysql
+    hostname: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: testdb
+      MYSQL_USER: mysqluser
+      MYSQL_PASSWORD: mysqlpass
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ../../scripts/setup/init-mysql.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - exapg-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # SQL Server als Beispiel-Datenquelle
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: exapg-mssql
+    hostname: mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "StrongPassword123!"
+      MSSQL_PID: "Developer"
+    volumes:
+      - mssql-data:/var/opt/mssql
+      - ../../scripts/setup/init-mssql.sql:/scripts/init.sql
+    networks:
+      - exapg-network
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "StrongPassword123!", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB als Beispiel-Datenquelle
+  mongodb:
+    image: mongo:5.0
+    container_name: exapg-mongodb
+    hostname: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_DATABASE: testdb
+    volumes:
+      - mongodb-data:/data/db
+      - ../../scripts/setup/init-mongodb.js:/docker-entrypoint-initdb.d/init.js
+    networks:
+      - exapg-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis als Beispiel-Datenquelle
+  redis:
+    image: redis:6.2
+    container_name: exapg-redis
+    hostname: redis
+    command: redis-server --requirepass redis123
+    volumes:
+      - redis-data:/data
+    networks:
+      - exapg-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis123", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Virtual Schemas Setup Helper
+  setup:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.virtual_schemas
+    container_name: exapg-vs-setup
+    hostname: exapg-vs-setup
+    depends_on:
+      - exapg
+      - mysql
+      - mssql
+      - mongodb
+      - redis
+    volumes:
+      - ../../scripts:/scripts
+      - ../../sql:/sql
+    environment:
+      POSTGRES_HOST: exapg
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      MYSQL_HOST: mysql
+      MYSQL_USER: mysqluser
+      MYSQL_PASSWORD: mysqlpass
+      MYSQL_DATABASE: testdb
+      MSSQL_HOST: mssql
+      MSSQL_USER: sa
+      MSSQL_PASSWORD: StrongPassword123!
+      MONGODB_HOST: mongodb
+      MONGODB_USER: root
+      MONGODB_PASSWORD: example
+      REDIS_HOST: redis
+      REDIS_PASSWORD: redis123
+    networks:
+      - exapg-network
+    command: >
+      bash -c "
+        echo 'Warte auf Verfügbarkeit aller Datenbanken...'
+        sleep 30
+        echo 'Starte Virtual Schemas Einrichtung...'
+        /scripts/setup/setup-virtual-schemas.sh
+        echo 'Virtual Schemas wurden eingerichtet.'
+      "
+    restart: "no"
+
+networks:
+  exapg-network:
+    driver: bridge
+
+volumes:
+  exapg-data:
+  mysql-data:
+  mssql-data:
+  mongodb-data:
+  redis-data: 

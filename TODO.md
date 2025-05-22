@@ -42,9 +42,9 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 ## Phase 3: Exasol-spezifische Features
 
 ### Virtual Schemas einführen
-- [ ] Foreign Data Wrapper (FDW) für alle wichtigen Datenquellen einrichten
-- [ ] Einheitliche Abfrage-Schnittstelle über heterogene Datenquellen
-- [ ] Pushdown-Optimierung für Filter und Aggregationen
+- [x] Foreign Data Wrapper (FDW) für alle wichtigen Datenquellen einrichten
+- [x] Einheitliche Abfrage-Schnittstelle über heterogene Datenquellen
+- [x] Pushdown-Optimierung für Filter und Aggregationen
 
 ### UDF-Framework entwickeln
 - [ ] Integration von LuaJIT oder ähnlichem für Exasol-LUA-Kompatibilität
