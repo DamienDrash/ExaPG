@@ -31,6 +31,9 @@ DEPLOYMENT_MODE=cluster ./start-exapg.sh
 # Citus-Cluster mit optimierten Verteilungsstrategien starten
 ./start-exapg-citus.sh
 
+# Hochverfügbares Cluster mit automatischem Failover starten
+./start-exapg-ha.sh
+
 # Cluster-Management mit automatischer Cluster-Erweiterung starten
 ./start-cluster-management.sh
 

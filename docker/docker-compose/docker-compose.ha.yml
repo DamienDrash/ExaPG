@@ -1,0 +1,394 @@
+version: '3.8'
+
+services:
+  # etcd-Cluster für Patroni und Service Discovery
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.4
+    container_name: exapg-etcd
+    hostname: exapg-etcd
+    command:
+      - etcd
+      - --name=etcd
+      - --data-dir=/etcd-data
+      - --advertise-client-urls=http://etcd:2379
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --initial-advertise-peer-urls=http://etcd:2380
+      - --listen-peer-urls=http://0.0.0.0:2380
+      - --initial-cluster=etcd=http://etcd:2380
+      - --initial-cluster-state=new
+      - --initial-cluster-token=exapg-etcd-cluster
+    volumes:
+      - etcd-data:/etcd-data
+    ports:
+      - "2379:2379"
+    networks:
+      - exapg-ha-network
+
+  # pgBouncer für Connection Pooling und Load Balancing
+  pgbouncer:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.pgbouncer
+    container_name: exapg-pgbouncer
+    hostname: exapg-pgbouncer
+    depends_on:
+      - coordinator-1
+      - coordinator-2
+    ports:
+      - "6432:6432"
+    environment:
+      ETCD_HOST: etcd
+      ETCD_PORT: 2379
+      PGBOUNCER_LISTEN_PORT: 6432
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: 1000
+      PGBOUNCER_DEFAULT_POOL_SIZE: 20
+      PGBOUNCER_STATS_USERS: postgres
+    volumes:
+      - ../../config/pgbouncer:/etc/pgbouncer
+      - pgbouncer-logs:/var/log/pgbouncer
+    networks:
+      - exapg-ha-network
+    restart: always
+    healthcheck:
+      test: [ "CMD", "/scripts/pgbouncer-healthcheck.sh" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Koordinator-Cluster mit Patroni für automatisches Failover
+  coordinator-1:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.ha
+    container_name: exapg-coordinator-1
+    hostname: exapg-coordinator-1
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      PATRONI_NAME: exapg-coordinator-1
+      PATRONI_SCOPE: exapg-coordinator
+      PATRONI_ETCD_HOST: etcd
+      PATRONI_ETCD_PORT: 2379
+      PATRONI_POSTGRES_CONNECT_ADDRESS: coordinator-1:5432
+      PATRONI_POSTGRES_LISTEN: 0.0.0.0:5432
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_RESTAPI_CONNECT_ADDRESS: coordinator-1:8008
+      NODE_ROLE: coordinator
+      CITUS_NODE_ROLE: coordinator
+      COORDINATOR_HOST: coordinator-1
+    volumes:
+      - coordinator-1-data:/var/lib/postgresql/data
+      - ../../config/ha:/etc/patroni
+      - ../../scripts/maintenance:/scripts
+    networks:
+      - exapg-ha-network
+    depends_on:
+      - etcd
+    ports:
+      - "5434:5432"
+      - "8010:8008"
+    command: >
+      bash -c "
+        /scripts/start-patroni.sh
+      "
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -h localhost || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  coordinator-2:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.ha
+    container_name: exapg-coordinator-2
+    hostname: exapg-coordinator-2
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      PATRONI_NAME: exapg-coordinator-2
+      PATRONI_SCOPE: exapg-coordinator
+      PATRONI_ETCD_HOST: etcd
+      PATRONI_ETCD_PORT: 2379
+      PATRONI_POSTGRES_CONNECT_ADDRESS: coordinator-2:5432
+      PATRONI_POSTGRES_LISTEN: 0.0.0.0:5432
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_RESTAPI_CONNECT_ADDRESS: coordinator-2:8008
+      NODE_ROLE: coordinator
+      CITUS_NODE_ROLE: coordinator
+      COORDINATOR_HOST: coordinator-1
+    volumes:
+      - coordinator-2-data:/var/lib/postgresql/data
+      - ../../config/ha:/etc/patroni
+      - ../../scripts/maintenance:/scripts
+    networks:
+      - exapg-ha-network
+    depends_on:
+      - etcd
+      - coordinator-1
+    ports:
+      - "5435:5432"
+      - "8011:8008"
+    command: >
+      bash -c "
+        /scripts/start-patroni.sh
+      "
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -h localhost || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Worker-Nodes mit Replikation
+  worker-1a:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.ha
+    container_name: exapg-worker-1a
+    hostname: exapg-worker-1a
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      PATRONI_NAME: exapg-worker-1a
+      PATRONI_SCOPE: exapg-worker-1
+      PATRONI_ETCD_HOST: etcd
+      PATRONI_ETCD_PORT: 2379
+      PATRONI_POSTGRES_CONNECT_ADDRESS: worker-1a:5432
+      PATRONI_POSTGRES_LISTEN: 0.0.0.0:5432
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_RESTAPI_CONNECT_ADDRESS: worker-1a:8008
+      NODE_ROLE: worker
+      CITUS_NODE_ROLE: worker
+      CITUS_WORKER_ID: 1
+      COORDINATOR_HOST: coordinator-1
+    volumes:
+      - worker-1a-data:/var/lib/postgresql/data
+      - ../../config/ha:/etc/patroni
+      - ../../scripts/maintenance:/scripts
+    networks:
+      - exapg-ha-network
+    depends_on:
+      - etcd
+      - coordinator-1
+    command: >
+      bash -c "
+        /scripts/start-patroni.sh
+      "
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -h localhost || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  worker-1b:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.ha
+    container_name: exapg-worker-1b
+    hostname: exapg-worker-1b
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      PATRONI_NAME: exapg-worker-1b
+      PATRONI_SCOPE: exapg-worker-1
+      PATRONI_ETCD_HOST: etcd
+      PATRONI_ETCD_PORT: 2379
+      PATRONI_POSTGRES_CONNECT_ADDRESS: worker-1b:5432
+      PATRONI_POSTGRES_LISTEN: 0.0.0.0:5432
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_RESTAPI_CONNECT_ADDRESS: worker-1b:8008
+      NODE_ROLE: worker
+      CITUS_NODE_ROLE: worker
+      CITUS_WORKER_ID: 1
+      COORDINATOR_HOST: coordinator-1
+    volumes:
+      - worker-1b-data:/var/lib/postgresql/data
+      - ../../config/ha:/etc/patroni
+      - ../../scripts/maintenance:/scripts
+    networks:
+      - exapg-ha-network
+    depends_on:
+      - etcd
+      - worker-1a
+    command: >
+      bash -c "
+        /scripts/start-patroni.sh
+      "
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -h localhost || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  worker-2a:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.ha
+    container_name: exapg-worker-2a
+    hostname: exapg-worker-2a
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      PATRONI_NAME: exapg-worker-2a
+      PATRONI_SCOPE: exapg-worker-2
+      PATRONI_ETCD_HOST: etcd
+      PATRONI_ETCD_PORT: 2379
+      PATRONI_POSTGRES_CONNECT_ADDRESS: worker-2a:5432
+      PATRONI_POSTGRES_LISTEN: 0.0.0.0:5432
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_RESTAPI_CONNECT_ADDRESS: worker-2a:8008
+      NODE_ROLE: worker
+      CITUS_NODE_ROLE: worker
+      CITUS_WORKER_ID: 2
+      COORDINATOR_HOST: coordinator-1
+    volumes:
+      - worker-2a-data:/var/lib/postgresql/data
+      - ../../config/ha:/etc/patroni
+      - ../../scripts/maintenance:/scripts
+    networks:
+      - exapg-ha-network
+    depends_on:
+      - etcd
+      - coordinator-1
+    command: >
+      bash -c "
+        /scripts/start-patroni.sh
+      "
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -h localhost || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  worker-2b:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.ha
+    container_name: exapg-worker-2b
+    hostname: exapg-worker-2b
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      PATRONI_NAME: exapg-worker-2b
+      PATRONI_SCOPE: exapg-worker-2
+      PATRONI_ETCD_HOST: etcd
+      PATRONI_ETCD_PORT: 2379
+      PATRONI_POSTGRES_CONNECT_ADDRESS: worker-2b:5432
+      PATRONI_POSTGRES_LISTEN: 0.0.0.0:5432
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_RESTAPI_CONNECT_ADDRESS: worker-2b:8008
+      NODE_ROLE: worker
+      CITUS_NODE_ROLE: worker
+      CITUS_WORKER_ID: 2
+      COORDINATOR_HOST: coordinator-1
+    volumes:
+      - worker-2b-data:/var/lib/postgresql/data
+      - ../../config/ha:/etc/patroni
+      - ../../scripts/maintenance:/scripts
+    networks:
+      - exapg-ha-network
+    depends_on:
+      - etcd
+      - worker-2a
+    command: >
+      bash -c "
+        /scripts/start-patroni.sh
+      "
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -h localhost || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Cluster-Setup-Service
+  cluster-setup:
+    build:
+      context: ../../
+      dockerfile: docker/Dockerfile.ha
+    container_name: exapg-ha-setup
+    hostname: exapg-ha-setup
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      ETCD_HOST: etcd
+      COORDINATOR_1_HOST: coordinator-1
+      COORDINATOR_2_HOST: coordinator-2
+      WORKER_1A_HOST: worker-1a
+      WORKER_1B_HOST: worker-1b
+      WORKER_2A_HOST: worker-2a
+      WORKER_2B_HOST: worker-2b
+    volumes:
+      - ../../scripts/setup:/setup
+      - ../../scripts/maintenance:/scripts
+      - ../../sql:/sql
+    networks:
+      - exapg-ha-network
+    depends_on:
+      - etcd
+      - coordinator-1
+      - coordinator-2
+      - worker-1a
+      - worker-1b
+      - worker-2a
+      - worker-2b
+      - pgbouncer
+    restart: "no"
+    command: >
+      bash -c "
+        echo 'Warte auf volle Verfügbarkeit der Cluster-Nodes...'
+        sleep 30
+        echo 'Starte HA-Cluster-Einrichtung...'
+        
+        # Bekomme den primären Coordinator
+        PRIMARY_COORDINATOR=$(/scripts/get-primary.sh exapg-coordinator)
+        echo \"Primärer Coordinator: $${PRIMARY_COORDINATOR}\"
+        
+        # Füge Worker dem Citus-Cluster hinzu
+        PRIMARY_WORKER_1=$(/scripts/get-primary.sh exapg-worker-1)
+        PRIMARY_WORKER_2=$(/scripts/get-primary.sh exapg-worker-2)
+        echo \"Füge Worker-Nodes zum Citus-Cluster hinzu: $${PRIMARY_WORKER_1}, $${PRIMARY_WORKER_2}\"
+        
+        PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$PRIMARY_COORDINATOR -U $$POSTGRES_USER -d $$POSTGRES_DB -c \"SELECT * FROM citus_add_node('$${PRIMARY_WORKER_1}', 5432);\";
+        PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$PRIMARY_COORDINATOR -U $$POSTGRES_USER -d $$POSTGRES_DB -c \"SELECT * FROM citus_add_node('$${PRIMARY_WORKER_2}', 5432);\";
+        
+        echo 'Worker-Nodes hinzugefügt, überprüfe Cluster-Status...'
+        PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$PRIMARY_COORDINATOR -U $$POSTGRES_USER -d $$POSTGRES_DB -c \"SELECT * FROM citus_get_active_worker_nodes();\";
+        
+        # Führe das Skript für Datenverteilungsstrategien aus
+        echo 'Installiere optimierte Verteilungsstrategien...'
+        POSTGRES_HOST=$$PRIMARY_COORDINATOR /setup/setup-distribution.sh
+        
+        # Konfiguriere pgBouncer für automatisches Failover
+        echo 'Konfiguriere pgBouncer für automatisches Failover...'
+        /scripts/update-pgbouncer.sh
+        
+        echo 'HA-Cluster-Einrichtung abgeschlossen. Das System ist nun hochverfügbar.'
+      "
+
+networks:
+  exapg-ha-network:
+    driver: bridge
+
+volumes:
+  etcd-data:
+  coordinator-1-data:
+  coordinator-2-data:
+  worker-1a-data:
+  worker-1b-data:
+  worker-2a-data:
+  worker-2b-data:
+  pgbouncer-logs:

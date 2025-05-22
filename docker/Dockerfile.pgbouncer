@@ -1,0 +1,56 @@
+FROM ubuntu:22.04
+
+# Metadaten
+LABEL maintainer="ExaPG Team"
+LABEL description="pgBouncer für ExaPG Connection Pooling und Load Balancing"
+LABEL version="1.0"
+
+# Umgebungsvariablen
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PG_CONFIG_DIR=/etc/pgbouncer
+ENV PG_USER=postgres
+
+# Installiere benötigte Pakete
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        pgbouncer \
+        postgresql-client \
+        ca-certificates \
+        curl \
+        dnsutils \
+        jq \
+        libc6 \
+        libssl3 \
+        python3 \
+        python3-pip \
+        etcd-client \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installiere zusätzliche Python-Pakete für Monitoring und Automatisierung
+RUN pip3 install --no-cache-dir requests psycopg2-binary etcd3 
+
+# Erstelle Verzeichnisse
+RUN mkdir -p ${PG_CONFIG_DIR} /var/log/pgbouncer /var/run/pgbouncer /scripts
+
+# Setze Berechtigungen
+RUN adduser --system --no-create-home --shell /bin/false --group --disabled-login pgbouncer \
+    && chown -R pgbouncer:pgbouncer ${PG_CONFIG_DIR} /var/log/pgbouncer /var/run/pgbouncer
+
+# Kopiere Konfigurationsdateien
+COPY config/pgbouncer/pgbouncer.ini ${PG_CONFIG_DIR}/
+COPY config/pgbouncer/userlist.txt ${PG_CONFIG_DIR}/
+COPY scripts/maintenance/pgbouncer-healthcheck.sh /scripts/
+COPY scripts/maintenance/update-backends.py /scripts/
+
+# Mache Skripte ausführbar
+RUN chmod +x /scripts/*.sh /scripts/*.py
+
+# Port für pgBouncer
+EXPOSE 6432
+
+# Healthcheck
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 CMD /scripts/pgbouncer-healthcheck.sh
+
+# Einstiegspunkt
+CMD ["pgbouncer", "/etc/pgbouncer/pgbouncer.ini"] 

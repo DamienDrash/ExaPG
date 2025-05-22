@@ -35,9 +35,9 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 - [x] Adaptive Query-Ausführung basierend auf Knotenauslastung
 
 ### Hochverfügbarkeit ausbauen
-- [ ] Automatisches Failover mit pgBouncer und Patroni integrieren
-- [ ] Multi-AZ-Deployment für Disaster Recovery vorbereiten
-- [ ] Selbstheilende Cluster-Mechanismen implementieren
+- [x] Automatisches Failover mit pgBouncer und Patroni integrieren
+- [x] Multi-AZ-Deployment für Disaster Recovery vorbereiten
+- [x] Selbstheilende Cluster-Mechanismen implementieren
 
 ## Phase 3: Exasol-spezifische Features
 

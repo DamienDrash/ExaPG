@@ -1,0 +1,77 @@
+scope: __SCOPE__
+namespace: /service/
+name: __NAME__
+
+restapi:
+  listen: __PATRONI_RESTAPI_LISTEN__
+  connect_address: __PATRONI_RESTAPI_CONNECT_ADDRESS__
+  authentication:
+    username: __PATRONI_RESTAPI_USERNAME__
+    password: __PATRONI_RESTAPI_PASSWORD__
+
+etcd:
+  host: __PATRONI_ETCD_HOST__
+  port: __PATRONI_ETCD_PORT__
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        wal_level: logical
+        hot_standby: "on"
+        wal_keep_segments: 100
+        max_wal_senders: 10
+        max_replication_slots: 10
+        checkpoint_timeout: 30
+        max_prepared_transactions: 100
+        shared_preload_libraries: 'citus'
+        max_connections: 100
+        max_worker_processes: 32
+        max_parallel_workers_per_gather: 8
+        max_parallel_workers: 16
+        listen_addresses: '*'
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+    - locale: C
+
+postgresql:
+  listen: __PATRONI_POSTGRES_LISTEN__
+  connect_address: __PATRONI_POSTGRES_CONNECT_ADDRESS__
+  data_dir: /var/lib/postgresql/data
+  bin_dir: /usr/lib/postgresql/15/bin
+  pgpass: /tmp/pgpass
+  authentication:
+    replication:
+      username: __POSTGRES_USER__
+      password: __POSTGRES_PASSWORD__
+    superuser:
+      username: __POSTGRES_USER__
+      password: __POSTGRES_PASSWORD__
+  parameters:
+    unix_socket_directories: '/var/run/postgresql'
+    citus.shard_count: 32
+    citus.shard_replication_factor: 2
+    citus.enable_repartition_joins: 'on'
+    citus.node_connection_timeout: 10000
+    citus.max_adaptive_executor_pool_size: 16
+    citus.log_remote_commands: 'on'
+    citus.coordinator_aggregation_strategy: 'row-gather'
+  pg_hba:
+    - host replication replicator 127.0.0.1/32 md5
+    - host replication __POSTGRES_USER__ 0.0.0.0/0 md5
+    - host all all 0.0.0.0/0 md5
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false
+  node_role: __NODE_ROLE__
+  citus_node_role: __CITUS_NODE_ROLE__ 
