@@ -10,9 +10,9 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 - [x] Partitionierungsstrategien für große Tabellen entwickeln
 
 ### In-Memory-Verarbeitung verbessern
-- [ ] Shared-Buffer-Konfiguration für maximale RAM-Nutzung optimieren
-- [ ] JIT-Kompilierung für komplexe Abfragen aktivieren
-- [ ] PL/pgSQL-Funktionen für rechenintensive Operationen optimieren
+- [x] Shared-Buffer-Konfiguration für maximale RAM-Nutzung optimieren
+- [x] JIT-Kompilierung für komplexe Abfragen aktivieren
+- [x] PL/pgSQL-Funktionen für rechenintensive Operationen optimieren
 
 ### Parallelverarbeitung ausbauen
 - [ ] Abfrageparallelisierung verbessern (max_parallel_workers erhöhen)
