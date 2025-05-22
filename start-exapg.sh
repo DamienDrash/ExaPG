@@ -101,15 +101,15 @@ print_message "Starte ExaPG im $MODE-Modus..."
 
 # Stoppe alle laufenden Container und bereinige Volumes
 print_message "Stoppe vorherige Instanzen und bereinige Volumes..."
-docker-compose down -v 2>/dev/null || true
+docker-compose -f docker/docker-compose/docker-compose.yml down -v 2>/dev/null || true
 
 # Starte die Container entsprechend dem gewählten Modus
 if [ "$MODE" == "single" ]; then
   print_message "Starte Single-Node-Modus..."
-  docker-compose up -d coordinator
+  docker-compose -f docker/docker-compose/docker-compose.yml up -d coordinator
 elif [ "$MODE" == "cluster" ]; then
   print_message "Starte Cluster-Modus mit $WORKER_COUNT Worker-Knoten..."
-  docker-compose --profile cluster up -d
+  docker-compose -f docker/docker-compose/docker-compose.yml --profile cluster up -d
 else
   print_error "Ungültiger Modus: $MODE"
   exit 1
@@ -135,6 +135,10 @@ if [ "$COORDINATOR_STATUS" == "healthy" ]; then
   echo ""
   echo "Führen Sie folgenden Befehl aus, um eine SQL-Konsole zu öffnen:"
   echo "docker exec -it ${CONTAINER_NAME}-coordinator psql -U $POSTGRES_USER -d $POSTGRES_DB"
+
+  # Setup-Skripte ausführen
+  echo "Führe Initialisierungsskripte aus..."
+  docker exec -it ${CONTAINER_NAME}-coordinator bash -c "cd /scripts/setup && ./setup-parallel-processing.sh"
 else
   print_error "ExaPG konnte nicht korrekt gestartet werden. Überprüfen Sie die Logs:"
   echo "docker-compose logs"

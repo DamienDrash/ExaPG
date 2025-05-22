@@ -1,146 +1,82 @@
 #!/bin/bash
-# Start-Skript für ExaPG mit erweiterten Datenintegrationsfunktionen
-# Dieses Skript startet die ExaPG-Umgebung mit Foreign Data Wrappers und ETL-Funktionalität
+# ExaPG FDW (Foreign Data Wrapper) Start-Skript
 
 set -e
 
-echo "=== ExaPG - PostgreSQL als Exasol-Alternative mit Datenintegration ==="
-echo "Startet ExaPG mit Foreign Data Wrappers und ETL-Funktionalität"
-echo ""
+# Farbdefinitionen für bessere Lesbarkeit
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
 
-# Funktion zur Anzeige der Hilfe
-show_help() {
-    echo "Verwendung: $0 [OPTION]"
-    echo ""
-    echo "Optionen:"
-    echo "  --help, -h               Diese Hilfe anzeigen"
-    echo "  --with-demo-sources      Demo-Datenquellen (MySQL, MongoDB, Redis) starten"
-    echo "  --with-pgagent           pgAgent für ETL-Automatisierung starten"
-    echo "  --all                    Alle Komponenten starten"
-    echo ""
-    echo "Standardmäßig wird nur der ExaPG-Koordinator mit FDW-Unterstützung gestartet."
-    exit 0
+# Funktion zum Anzeigen von Nachrichten
+print_message() {
+  echo -e "${BLUE}[ExaPG FDW]${NC} $1"
 }
 
-# Parameter parsen
-WITH_DEMO_SOURCES=false
-WITH_PGAGENT=false
+print_success() {
+  echo -e "${GREEN}[ExaPG FDW]${NC} $1"
+}
 
-for arg in "$@"; do
-    case $arg in
-        --help|-h)
-            show_help
-            ;;
-        --with-demo-sources)
-            WITH_DEMO_SOURCES=true
-            ;;
-        --with-pgagent)
-            WITH_PGAGENT=true
-            ;;
-        --all)
-            WITH_DEMO_SOURCES=true
-            WITH_PGAGENT=true
-            ;;
-        *)
-            echo "Unbekannte Option: $arg"
-            show_help
-            ;;
-    esac
-done
+print_error() {
+  echo -e "${RED}[ExaPG FDW]${NC} $1"
+}
 
-# Prüfen, ob Docker und Docker Compose installiert sind
+# Überprüfe, ob Docker und Docker Compose installiert sind
 if ! command -v docker &> /dev/null; then
-    echo "Fehler: Docker ist nicht installiert. Bitte installieren Sie Docker und versuchen Sie es erneut."
-    exit 1
+  print_error "Docker wurde nicht gefunden. Bitte installieren Sie Docker."
+  exit 1
 fi
 
 if ! command -v docker-compose &> /dev/null; then
-    echo "Fehler: Docker Compose ist nicht installiert. Bitte installieren Sie Docker Compose und versuchen Sie es erneut."
-    exit 1
+  print_error "Docker Compose wurde nicht gefunden. Bitte installieren Sie Docker Compose."
+  exit 1
 fi
 
-# Docker-Compose-Profil erstellen
-COMPOSE_PROFILES="coordinator"
-
-if [ "$WITH_PGAGENT" = true ]; then
-    COMPOSE_PROFILES="$COMPOSE_PROFILES,pgagent"
-fi
-
-if [ "$WITH_DEMO_SOURCES" = true ]; then
-    COMPOSE_PROFILES="$COMPOSE_PROFILES,demo-sources"
-fi
-
-echo "Starte ExaPG mit FDW-Unterstützung..."
-
-# Services starten
-if [ "$WITH_DEMO_SOURCES" = true ] && [ "$WITH_PGAGENT" = true ]; then
-    echo "Starte alle Komponenten (Koordinator, pgAgent, Demo-Datenquellen)..."
-    docker-compose -f docker-compose.fdw.yml up -d
-elif [ "$WITH_DEMO_SOURCES" = true ]; then
-    echo "Starte Koordinator und Demo-Datenquellen..."
-    docker-compose -f docker-compose.fdw.yml up -d coordinator mysql mongodb redis
-elif [ "$WITH_PGAGENT" = true ]; then
-    echo "Starte Koordinator und pgAgent..."
-    docker-compose -f docker-compose.fdw.yml up -d coordinator pgagent
+# Lade Konfiguration aus .env
+if [ -f .env ]; then
+  source .env
 else
-    echo "Starte nur den Koordinator..."
-    docker-compose -f docker-compose.fdw.yml up -d coordinator
+  print_error "Keine .env-Datei gefunden. Bitte erstellen Sie zuerst eine .env-Datei."
+  exit 1
 fi
 
-# Warten, bis die Datenbank bereit ist
-echo "Warte, bis die Datenbank bereit ist..."
-until docker exec exapg-coordinator pg_isready -U postgres > /dev/null 2>&1; do
-    echo -n "."
-    sleep 2
-done
-echo ""
+print_message "Starte ExaPG mit aktivierten Foreign Data Wrappern..."
 
-# FDW-Beispiele laden
-echo "Lade FDW-Beispiele..."
-docker exec -i exapg-coordinator psql -U postgres -d exadb -f /scripts/fdw-examples.sql
+# Stoppe alle laufenden Container und bereinige Volumes
+print_message "Stoppe vorherige Instanzen und bereinige Volumes..."
+docker-compose -f docker/docker-compose/docker-compose.fdw.yml down -v 2>/dev/null || true
 
-# ETL-Jobs einrichten
-echo "Richte ETL-Jobs ein..."
-docker exec -i exapg-coordinator psql -U postgres -d exadb -f /scripts/setup-etl-jobs.sql
+# Starte die FDW-Container
+print_message "Starte FDW-Modus..."
+docker-compose -f docker/docker-compose/docker-compose.fdw.yml up -d
 
-echo ""
-echo "=== ExaPG mit Datenintegration wurde erfolgreich gestartet ==="
-echo ""
-echo "Verbindungsinformationen:"
-echo "  Host:     localhost"
-echo "  Port:     5432"
-echo "  Benutzer: postgres"
-echo "  Passwort: postgres"
-echo "  Datenbank: exadb"
-echo ""
+# Warte auf die Initialisierung
+print_message "Warte auf Initialisierung der Datenbank und externen Datenquellen..."
+sleep 15
 
-if [ "$WITH_DEMO_SOURCES" = true ]; then
-    echo "Demo-Datenquellen wurden gestartet:"
-    echo "  MySQL:    localhost:3306 (Benutzer: mysql_user, Passwort: mysql_password)"
-    echo "  MongoDB:  localhost:27017 (Benutzer: mongo_user, Passwort: mongo_password)"
-    echo "  Redis:    localhost:6379"
-    echo ""
-fi
+# Überprüfe den Status der Container
+COORDINATOR_STATUS=$(docker inspect --format='{{.State.Health.Status}}' ${CONTAINER_NAME:-exapg}-coordinator 2>/dev/null || echo "not_found")
+MYSQL_STATUS=$(docker ps --filter "name=exapg-mysql" --format "{{.Status}}" | grep -q "Up" && echo "running" || echo "stopped")
+MONGODB_STATUS=$(docker ps --filter "name=exapg-mongodb" --format "{{.Status}}" | grep -q "Up" && echo "running" || echo "stopped")
 
-if [ "$WITH_PGAGENT" = true ]; then
-    echo "pgAgent wurde gestartet für ETL-Automatisierung"
-    echo ""
-fi
-
-echo "Verfügbare Schemas für Datenintegration:"
-echo "  external_sources - Enthält Foreign Tables"
-echo "  etl - Enthält ETL-Prozesse und Transformationen"
-echo ""
-echo "Beispiele für Abfragen:"
-echo "  SELECT * FROM external_sources.example_csv;"
-echo "  SELECT * FROM external_sources.combined_data;"
-echo "  SELECT * FROM etl.activity_log;"
-echo ""
-
-# Optional: Shell im Container öffnen
-read -p "Möchten Sie eine Postgres-Shell öffnen? (j/n): " open_shell
-if [[ $open_shell == "j" || $open_shell == "J" ]]; then
-    docker exec -it exapg-coordinator psql -U postgres -d exadb
-fi
-
-exit 0 
+if [ "$COORDINATOR_STATUS" == "healthy" ] && [ "$MYSQL_STATUS" == "running" ] && [ "$MONGODB_STATUS" == "running" ]; then
+  print_success "ExaPG mit Foreign Data Wrappern wurde erfolgreich gestartet!"
+  echo ""
+  echo "Verfügbare Datenquellen:"
+  echo "----------------------"
+  echo "PostgreSQL: localhost:${COORDINATOR_PORT:-5432} (postgres/postgres)"
+  echo "MySQL:      localhost:3306 (root/mysql_root_password)"
+  echo "MongoDB:    localhost:27017 (root/mongo_root_password)"
+  echo "Redis:      localhost:6379"
+  echo ""
+  echo "Führen Sie folgenden Befehl aus, um eine SQL-Konsole zu öffnen:"
+  echo "docker exec -it ${CONTAINER_NAME:-exapg}-coordinator psql -U postgres"
+  
+  # Setup-Skripte ausführen
+  echo "Führe Initialisierungsskripte aus..."
+  docker exec -it ${CONTAINER_NAME:-exapg}-coordinator bash -c "cd /scripts/setup && ./setup-parallel-processing.sh"
+else
+  print_error "ExaPG FDW konnte nicht korrekt gestartet werden. Überprüfen Sie die Logs:"
+  echo "docker-compose -f docker/docker-compose/docker-compose.fdw.yml logs"
+fi 

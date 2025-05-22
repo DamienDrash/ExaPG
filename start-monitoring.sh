@@ -1,71 +1,67 @@
 #!/bin/bash
+# Start-Skript für Monitoring mit Prometheus/Grafana
+
+set -e
 
 # Farbdefinitionen
-RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+RED='\033[0;31m'
+NC='\033[0m'
 
-# Hilfsfunktionen
-info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+# Funktion zum Anzeigen von Nachrichten
+print_message() {
+  echo -e "${BLUE}[ExaPG Monitoring]${NC} $1"
 }
 
-success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+print_success() {
+  echo -e "${GREEN}[ExaPG Monitoring]${NC} $1"
 }
 
-warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+print_error() {
+  echo -e "${RED}[ExaPG Monitoring]${NC} $1"
 }
 
-error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Prüfen, ob Docker läuft
-if ! docker info >/dev/null 2>&1; then
-    error "Docker ist nicht gestartet oder der Benutzer hat keine Berechtigungen."
-    exit 1
+# Überprüfe, ob Docker und Docker Compose installiert sind
+if ! command -v docker &> /dev/null; then
+  print_error "Docker wurde nicht gefunden. Bitte installieren Sie Docker."
+  exit 1
 fi
 
-# Prüfen, ob ExaPG bereits läuft
-if ! docker ps | grep -q exapg-coordinator; then
-    warning "ExaPG scheint nicht zu laufen. Das Monitoring wird ohne Datenbankmetriken gestartet."
-    warning "Starten Sie ExaPG mit './start-exapg.sh', um alle Metriken zu erhalten."
+if ! command -v docker-compose &> /dev/null; then
+  print_error "Docker Compose wurde nicht gefunden. Bitte installieren Sie Docker Compose."
+  exit 1
 fi
 
-# Umgebungsvariablen für Grafana laden
+print_message "Starte Monitoring-Stack (Prometheus, Grafana, PostgreSQL Exporter)..."
+
+# Lade Umgebungsvariablen, falls vorhanden
 if [ -f .env ]; then
-    source .env
-    export GRAFANA_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-    export GRAFANA_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-    info "Grafana-Anmeldedaten: Benutzer: $GRAFANA_ADMIN_USER, Passwort: $GRAFANA_ADMIN_PASSWORD"
-else
-    warning ".env-Datei nicht gefunden. Standard-Anmeldedaten für Grafana werden verwendet."
-    export GRAFANA_ADMIN_USER=admin
-    export GRAFANA_ADMIN_PASSWORD=admin
+  source .env
 fi
 
-# Starte den Monitoring-Stack
-info "Starte den Monitoring-Stack (Prometheus, Grafana, Exporters)..."
-docker compose -f docker-compose.monitoring.yml up -d
+# Starte Monitoring-Stack
+docker-compose -f docker/docker-compose/docker-compose.monitoring.yml up -d
 
-# Prüfe, ob die Container laufen
+# Warte auf die Initialisierung
+print_message "Warte auf Initialisierung der Monitoring-Dienste..."
 sleep 5
-if docker ps | grep -q exapg-prometheus && docker ps | grep -q exapg-grafana; then
-    success "Monitoring-Stack erfolgreich gestartet!"
-    echo -e "\nZugriff auf die Monitoring-Tools:"
-    echo -e "- Prometheus: http://localhost:9090"
-    echo -e "- Grafana: http://localhost:3000 (Anmeldung mit $GRAFANA_ADMIN_USER / $GRAFANA_ADMIN_PASSWORD)"
-    echo -e "- Alertmanager: http://localhost:9093\n"
-    
-    echo -e "Grafana-Dashboards:"
-    echo -e "- ExaPG Overview: http://localhost:3000/d/exapg-overview"
-    echo -e "- ExaPG Analytische Leistung: http://localhost:3000/d/exapg-analytics\n"
+
+# Überprüfe, ob Dienste gestartet wurden
+GRAFANA_STATUS=$(docker ps --filter "name=exapg-grafana" --format "{{.Status}}" | grep -q "Up" && echo "running" || echo "stopped")
+PROMETHEUS_STATUS=$(docker ps --filter "name=exapg-prometheus" --format "{{.Status}}" | grep -q "Up" && echo "running" || echo "stopped")
+
+if [ "$GRAFANA_STATUS" == "running" ] && [ "$PROMETHEUS_STATUS" == "running" ]; then
+  print_success "Monitoring-Stack wurde erfolgreich gestartet!"
+  echo ""
+  echo "Zugangsinformationen:"
+  echo "---------------------"
+  echo "Grafana:     http://localhost:3000 (admin/admin)"
+  echo "Prometheus:  http://localhost:9090"
+  echo "Alertmanager: http://localhost:9093"
+  echo ""
+  echo "PostgreSQL-Metriken werden automatisch gesammelt."
 else
-    error "Einige Monitoring-Container konnten nicht gestartet werden."
-    docker compose -f docker-compose.monitoring.yml logs
-    exit 1
+  print_error "Monitoring-Stack konnte nicht korrekt gestartet werden."
+  echo "Überprüfen Sie die Logs: docker-compose -f docker/docker-compose/docker-compose.monitoring.yml logs"
 fi 

@@ -5,19 +5,22 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 ## Phase 1: Performance-Optimierung
 
 ### Columnar Storage vollständig implementieren
-- [x] Integration von Apache AGE oder cstore_fdw optimieren
-- [x] Kompressionsverfahren für analytische Daten einrichten
-- [x] Partitionierungsstrategien für große Tabellen entwickeln
+- [x] Integration von Citus Columnar mit ZSTD-Kompression
+- [x] Kompressionsverfahren für analytische Daten optimiert (ZSTD Level 3 als optimaler Kompromiss)
+- [x] Partitionierungsstrategien für große Tabellen (Zeit-, Listen- und Hash-Partitionierung)
 
 ### In-Memory-Verarbeitung verbessern
-- [x] Shared-Buffer-Konfiguration für maximale RAM-Nutzung optimieren
-- [x] JIT-Kompilierung für komplexe Abfragen aktivieren
-- [x] PL/pgSQL-Funktionen für rechenintensive Operationen optimieren
+- [x] Shared-Buffer-Konfiguration für maximale RAM-Nutzung optimiert (4GB)
+- [x] JIT-Kompilierung für komplexe Abfragen aktiviert und optimiert
+- [x] PL/pgSQL-Funktionen für rechenintensive Operationen optimiert
 
 ### Parallelverarbeitung ausbauen
-- [ ] Abfrageparallelisierung verbessern (max_parallel_workers erhöhen)
-- [ ] Worker-Prozesse optimal auf Hardware-Ressourcen abstimmen
-- [ ] Verteilungsstrategien für Daten auf Cluster-Knoten optimieren
+- [x] Abfrageparallelisierung verbessert (max_parallel_workers=16, max_parallel_workers_per_gather=8)
+- [x] Worker-Prozesse optimal auf Hardware-Ressourcen abgestimmt
+- [x] Kostenparameter für parallele Abfragen optimiert (parallel_setup_cost=100, parallel_tuple_cost=0.01)
+- [x] Spezielle SQL-Funktionen für parallele analytische Verarbeitung entwickelt
+- [x] Automatische Optimierung von Tabellen und Indizes für Parallelität
+- [ ] Verteilungsstrategien für Daten auf Cluster-Knoten weiter optimieren
 
 ## Phase 2: Skalierbarkeit und Hochverfügbarkeit
 

@@ -1,49 +1,47 @@
 #!/bin/bash
+# Stop-Skript für Monitoring mit Prometheus/Grafana
+
+set -e
 
 # Farbdefinitionen
-RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+RED='\033[0;31m'
+NC='\033[0m'
 
-# Hilfsfunktionen
-info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+# Funktion zum Anzeigen von Nachrichten
+print_message() {
+  echo -e "${BLUE}[ExaPG Monitoring]${NC} $1"
 }
 
-success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+print_success() {
+  echo -e "${GREEN}[ExaPG Monitoring]${NC} $1"
 }
 
-warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+print_error() {
+  echo -e "${RED}[ExaPG Monitoring]${NC} $1"
 }
 
-error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Prüfen, ob Docker läuft
-if ! docker info >/dev/null 2>&1; then
-    error "Docker ist nicht gestartet oder der Benutzer hat keine Berechtigungen."
-    exit 1
+# Überprüfe, ob Docker installiert ist
+if ! command -v docker &> /dev/null; then
+  print_error "Docker wurde nicht gefunden. Bitte installieren Sie Docker."
+  exit 1
 fi
 
-# Prüfen, ob der Monitoring-Stack läuft
-if ! docker ps | grep -q "exapg-prometheus\|exapg-grafana"; then
-    warning "Monitoring-Stack scheint nicht zu laufen."
-    exit 0
+if ! command -v docker-compose &> /dev/null; then
+  print_error "Docker Compose wurde nicht gefunden. Bitte installieren Sie Docker Compose."
+  exit 1
 fi
+
+print_message "Stoppe Monitoring-Stack..."
 
 # Stoppe den Monitoring-Stack
-info "Stoppe den Monitoring-Stack..."
-docker compose -f docker-compose.monitoring.yml down
+docker-compose -f docker/docker-compose/docker-compose.monitoring.yml down
 
-# Prüfen, ob die Container noch laufen
-if docker ps | grep -q "exapg-prometheus\|exapg-grafana"; then
-    error "Monitoring-Stack konnte nicht vollständig gestoppt werden."
-    exit 1
+# Überprüfe, ob alle Container gestoppt wurden
+if ! docker ps | grep -q "exapg-prometheus\|exapg-grafana\|exapg-alertmanager\|exapg-postgres-exporter"; then
+  print_success "Monitoring-Stack wurde erfolgreich gestoppt."
 else
-    success "Monitoring-Stack erfolgreich gestoppt!"
+  print_error "Einige Monitoring-Container laufen noch."
+  docker ps | grep "exapg-prometheus\|exapg-grafana\|exapg-alertmanager\|exapg-postgres-exporter"
 fi 

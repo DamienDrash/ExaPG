@@ -1,0 +1,169 @@
+version: '3.8'
+
+networks:
+  exapg-network:
+    driver: bridge
+
+# Basis-Service-Definition für PostgreSQL
+x-postgres-service: &postgres-service
+  image: exapg:latest
+  build:
+    context: ../..
+    dockerfile: docker/Dockerfile
+  networks:
+    - exapg-network
+  environment:
+    POSTGRES_PASSWORD: postgres
+  restart: always
+
+services:
+  # Koordinator-Knoten
+  coordinator:
+    <<: *postgres-service
+    container_name: ${CONTAINER_NAME:-exapg}-coordinator
+    hostname: coordinator
+    volumes:
+      - coordinator_data:/var/lib/postgresql/data
+      - ../../config/postgresql/postgresql-coordinator.conf:/etc/postgresql/postgresql.conf
+      - ../../config/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ../../config/init/init-coordinator.sh:/docker-entrypoint-initdb.d/init.sh
+      - ../../scripts:/scripts
+      - ../../sql/analytics/create_analytics_table.sql:/sql/analytics/create_analytics_table.sql
+      - ../../sql/partitioning/create_partition_function.sql:/sql/partitioning/create_partition_function.sql
+      - ../../sql/partitioning/create_partition_strategies.sql:/sql/partitioning/create_partition_strategies.sql
+      - ../../sql/parallel/create_parallel_functions.sql:/sql/parallel/create_parallel_functions.sql
+    ports:
+      - "${COORDINATOR_PORT:-5432}:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+      # CITUS Columnar Einstellungen
+      CITUS_ENABLE_COLUMNAR: 'true'
+      COLUMNAR_COMPRESSION: 'pglz'
+      # Speicheroptimierungen
+      POSTGRES_SHARED_BUFFERS: '4GB'
+      POSTGRES_WORK_MEM: '1GB'
+      POSTGRES_MAINTENANCE_WORK_MEM: '2GB'
+      # Parallelitätsoptimierungen
+      POSTGRES_MAX_WORKER_PROCESSES: '16'
+      POSTGRES_MAX_PARALLEL_WORKERS: '16'
+      POSTGRES_MAX_PARALLEL_WORKERS_PER_GATHER: '8'
+      POSTGRES_PARALLEL_SETUP_COST: '100'
+      POSTGRES_PARALLEL_TUPLE_COST: '0.01'
+      POSTGRES_EFFECTIVE_IO_CONCURRENCY: '200'
+      # JIT Optimierungen
+      POSTGRES_JIT: 'on'
+      POSTGRES_JIT_ABOVE_COST: '50000'
+      POSTGRES_JIT_INLINE_ABOVE_COST: '100000'
+      POSTGRES_JIT_OPTIMIZE_ABOVE_COST: '200000'
+      # Query Optimierungen
+      POSTGRES_ENABLE_HASHAGG: 'on'
+      POSTGRES_ENABLE_HASHJOIN: 'on'
+      POSTGRES_ENABLE_MATERIAL: 'on'
+      POSTGRES_ENABLE_NESTLOOP: 'on'
+      POSTGRES_ENABLE_PARALLEL_APPEND: 'on'
+      POSTGRES_ENABLE_PARALLEL_HASH: 'on'
+      POSTGRES_MIN_PARALLEL_TABLE_SCAN_SIZE: '8MB'
+      POSTGRES_MIN_PARALLEL_INDEX_SCAN_SIZE: '512kB'
+    deploy:
+      resources:
+        limits:
+          memory: ${COORDINATOR_MEMORY_LIMIT:-8G}
+        reservations:
+          memory: ${SHARED_MEMORY_SIZE:-4G}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    command: >
+      postgres -c config_file=/etc/postgresql/postgresql.conf
+
+  # Worker-Knoten 1 (nur im Cluster-Modus)
+  worker1:
+    <<: *postgres-service
+    container_name: ${CONTAINER_NAME:-exapg}-worker1
+    hostname: worker1
+    volumes:
+      - worker1_data:/var/lib/postgresql/data
+      - ../../config/postgresql/postgresql-worker.conf:/etc/postgresql/postgresql.conf
+      - ../../config/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ../../config/init/init-worker.sh:/docker-entrypoint-initdb.d/init.sh
+      - ../../scripts:/scripts
+    ports:
+      - "${WORKER_PORT_START:-5433}:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+      # Speicher und Parallelitätsoptimierungen wie im Koordinator
+      POSTGRES_SHARED_BUFFERS: '4GB'
+      POSTGRES_WORK_MEM: '1GB'
+      POSTGRES_MAINTENANCE_WORK_MEM: '2GB'
+      POSTGRES_MAX_WORKER_PROCESSES: '16'
+      POSTGRES_MAX_PARALLEL_WORKERS: '16'
+      POSTGRES_MAX_PARALLEL_WORKERS_PER_GATHER: '8'
+      POSTGRES_PARALLEL_SETUP_COST: '100'
+      POSTGRES_PARALLEL_TUPLE_COST: '0.01'
+      # Query Optimierungen
+      POSTGRES_ENABLE_HASHAGG: 'on'
+      POSTGRES_ENABLE_HASHJOIN: 'on'
+      POSTGRES_ENABLE_PARALLEL_APPEND: 'on'
+      POSTGRES_ENABLE_PARALLEL_HASH: 'on'
+    deploy:
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT:-8G}
+        reservations:
+          memory: ${SHARED_MEMORY_SIZE:-4G}
+    profiles:
+      - cluster
+    command: >
+      postgres -c config_file=/etc/postgresql/postgresql.conf
+
+  # Worker-Knoten 2 (nur im Cluster-Modus)
+  worker2:
+    <<: *postgres-service
+    container_name: ${CONTAINER_NAME:-exapg}-worker2
+    hostname: worker2
+    volumes:
+      - worker2_data:/var/lib/postgresql/data
+      - ../../config/postgresql/postgresql-worker.conf:/etc/postgresql/postgresql.conf
+      - ../../config/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ../../config/init/init-worker.sh:/docker-entrypoint-initdb.d/init.sh
+      - ../../scripts:/scripts
+    ports:
+      - "${WORKER_PORT_START_2:-5434}:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+      # Speicher und Parallelitätsoptimierungen wie im Koordinator
+      POSTGRES_SHARED_BUFFERS: '4GB'
+      POSTGRES_WORK_MEM: '1GB'
+      POSTGRES_MAINTENANCE_WORK_MEM: '2GB'
+      POSTGRES_MAX_WORKER_PROCESSES: '16'
+      POSTGRES_MAX_PARALLEL_WORKERS: '16'
+      POSTGRES_MAX_PARALLEL_WORKERS_PER_GATHER: '8'
+      POSTGRES_PARALLEL_SETUP_COST: '100'
+      POSTGRES_PARALLEL_TUPLE_COST: '0.01'
+      # Query Optimierungen
+      POSTGRES_ENABLE_HASHAGG: 'on'
+      POSTGRES_ENABLE_HASHJOIN: 'on'
+      POSTGRES_ENABLE_PARALLEL_APPEND: 'on'
+      POSTGRES_ENABLE_PARALLEL_HASH: 'on'
+    deploy:
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT:-8G}
+        reservations:
+          memory: ${SHARED_MEMORY_SIZE:-4G}
+    profiles:
+      - cluster
+    command: >
+      postgres -c config_file=/etc/postgresql/postgresql.conf
+
+volumes:
+  coordinator_data:
+    driver: local
+  worker1_data:
+    driver: local
+  worker2_data:
+    driver: local 
