@@ -5,7 +5,7 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 ## Phase 1: Performance-Optimierung
 
 ### Columnar Storage vollständig implementieren
-- [ ] Integration von Apache AGE oder cstore_fdw optimieren
+- [x] Integration von Apache AGE oder cstore_fdw optimieren
 - [ ] Kompressionsverfahren für analytische Daten einrichten
 - [ ] Partitionierungsstrategien für große Tabellen entwickeln
 
