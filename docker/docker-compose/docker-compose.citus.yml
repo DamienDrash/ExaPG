@@ -106,6 +106,7 @@ services:
       WORKER_2_HOST: worker-2
     volumes:
       - ../../scripts/setup:/setup
+      - ../../sql:/sql
     networks:
       - exapg-network
     restart: "no"
@@ -125,6 +126,10 @@ services:
         # Führe das Skript für Datenverteilungsstrategien aus
         echo 'Installiere optimierte Verteilungsstrategien...'
         /setup/setup-distribution.sh
+        
+        # SQL-Skript direkt ausführen für den Fall, dass das Setup-Skript fehlschlägt
+        echo 'Stelle sicher, dass Verteilungsstrategien installiert sind...'
+        PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$COORDINATOR_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB -f /sql/distribution/create_distribution_strategies.sql
         
         echo 'Cluster-Einrichtung abgeschlossen'
       "

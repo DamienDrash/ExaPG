@@ -5,19 +5,50 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-SQL_DIR="$PROJECT_ROOT/sql/distribution"
-CONFIG_DIR="$PROJECT_ROOT/config/postgresql"
+# Set default paths for different environments
+if [ -d "/sql" ]; then
+    # Docker-Container-Umgebung
+    SQL_DIR="/sql/distribution"
+    CONFIG_DIR="/etc/postgresql"
+else
+    # Lokale Entwicklungsumgebung
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+    SQL_DIR="$PROJECT_ROOT/sql/distribution"
+    CONFIG_DIR="$PROJECT_ROOT/config/postgresql"
+fi
 
 echo "Starte Einrichtung der optimierten Datenverteilungsstrategien..."
 
-# PostgreSQL-Verbindungsparameter aus Umgebungsdatei laden
-if [ -f "$PROJECT_ROOT/.env" ]; then
-    source "$PROJECT_ROOT/.env"
-else
-    echo "FEHLER: .env Datei nicht gefunden. Bitte stellen Sie sicher, dass die .env Datei existiert."
+# PostgreSQL-Verbindungsparameter aus Umgebungsdatei laden oder Umgebungsvariablen verwenden
+if [ -z "$POSTGRES_HOST" ]; then
+    if [ -f "/app/.env" ]; then
+        # Docker-Container mit gemounteter .env-Datei
+        source "/app/.env"
+    elif [ -f "$PROJECT_ROOT/.env" ]; then
+        # Lokale Entwicklungsumgebung
+        source "$PROJECT_ROOT/.env"
+    else
+        echo "WARNUNG: Keine .env Datei gefunden. Verwende Standardwerte für die Verbindung."
+        # Standardwerte setzen
+        POSTGRES_HOST="coordinator"
+        POSTGRES_PORT="5432"
+        POSTGRES_USER="postgres"
+        POSTGRES_PASSWORD="postgres"
+        POSTGRES_DB="postgres"
+    fi
+fi
+
+# Überprüfen, ob alle notwendigen Variablen gesetzt sind
+if [ -z "$POSTGRES_HOST" ] || [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ] || [ -z "$POSTGRES_DB" ]; then
+    echo "FEHLER: Nicht alle notwendigen Datenbankverbindungsparameter sind gesetzt."
+    echo "Benötigt werden: POSTGRES_HOST, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB"
     exit 1
+fi
+
+# Standard-Port setzen, falls nicht definiert
+if [ -z "$POSTGRES_PORT" ]; then
+    POSTGRES_PORT="5432"
 fi
 
 # Prüfen, ob Citus installiert ist oder installiert werden soll
