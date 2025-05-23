@@ -1,0 +1,92 @@
+FROM postgres:15
+
+# Metadaten
+LABEL maintainer="ExaPG Team"
+LABEL description="PostgreSQL mit ETL-Funktionalitäten für ExaPG (Exasol-kompatibel)"
+LABEL version="1.0"
+
+# Umgebungsvariablen
+ENV POSTGRES_PASSWORD=postgres
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_DB=postgres
+
+# Installiere Build-Abhängigkeiten und ETL-Voraussetzungen
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-psycopg2 \
+    python3-pandas \
+    python3-yaml \
+    parallel \
+    kafkacat \
+    unixodbc-dev \
+    locales \
+    librdkafka-dev \
+    lz4 \
+    zstd \
+    pgloader \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installiere debezium (CDC-Tool)
+RUN curl -fsSL -o /tmp/debezium-connector-postgres.tar.gz \
+    https://repo1.maven.org/maven2/io/debezium/debezium-connector-postgres/2.3.0.Final/debezium-connector-postgres-2.3.0.Final-plugin.tar.gz \
+    && mkdir -p /usr/share/debezium \
+    && tar -xzf /tmp/debezium-connector-postgres.tar.gz -C /usr/share/debezium \
+    && rm /tmp/debezium-connector-postgres.tar.gz
+
+# Installiere Great Expectations für Datenqualitätsprüfungen
+RUN pip3 install --no-cache-dir \
+    great-expectations \
+    sqlalchemy \
+    psycopg2-binary \
+    pandas \
+    numpy \
+    pyyaml \
+    confluent-kafka
+
+# Setze Locale
+RUN sed -i -e 's/# de_DE.UTF-8 UTF-8/de_DE.UTF-8 UTF-8/' /etc/locale.gen && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG=de_DE.UTF-8
+ENV LANG de_DE.UTF-8
+ENV LC_ALL de_DE.UTF-8
+
+# Optimiere PostgreSQL für ETL-Workloads
+RUN echo "wal_level = logical" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "max_wal_senders = 10" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "max_replication_slots = 10" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "shared_preload_libraries = 'pg_stat_statements'" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "pg_stat_statements.track = all" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "maintenance_work_mem = 256MB" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "checkpoint_timeout = 1h" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "max_wal_size = 8GB" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "min_wal_size = 2GB" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "max_worker_processes = 24" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "max_parallel_workers = 16" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "max_parallel_workers_per_gather = 8" >> /usr/share/postgresql/postgresql.conf.sample && \
+    echo "max_parallel_maintenance_workers = 4" >> /usr/share/postgresql/postgresql.conf.sample
+
+# Kopiere die SQL-Skripte für das ETL-Framework
+COPY sql/etl/create_etl_framework.sql /docker-entrypoint-initdb.d/
+COPY sql/etl/create_etl_utils.sql /docker-entrypoint-initdb.d/
+COPY sql/etl/example_etl_jobs.sql /docker-entrypoint-initdb.d/
+
+# Kopiere die ETL-Hilfsskripte
+COPY scripts/setup/setup-etl-framework.sh /docker-entrypoint-initdb.d/
+RUN chmod +x /docker-entrypoint-initdb.d/setup-etl-framework.sh
+
+# Healthcheck
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 CMD pg_isready -U postgres || exit 1
+
+# Port für PostgreSQL
+EXPOSE 5432
+
+# Port für COPY-Server
+EXPOSE 8000
+
+CMD ["postgres"] 
