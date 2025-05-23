@@ -1,0 +1,49 @@
+FROM debian:bookworm-slim
+
+# Installiere grundlegende Tools und pgBackRest
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    pgbackrest \
+    openssh-client \
+    rsync \
+    curl \
+    jq \
+    pgbadger \
+    cron \
+    python3 \
+    python3-pip \
+    nano \
+    vim \
+    less \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installiere Python-Module für Backup-Skripte und Benachrichtigungen
+RUN pip3 install psycopg2-binary python-telegram-bot requests slackclient
+
+# Erstelle Verzeichnisse für pgBackRest
+RUN mkdir -p /var/lib/pgbackrest \
+    /var/spool/pgbackrest \
+    /var/log/pgbackrest \
+    /etc/pgbackrest/conf.d
+
+# Kopiere Skripte und Konfigurationen
+COPY pgbackrest/scripts/backup-scheduler.sh /usr/local/bin/
+COPY pgbackrest/scripts/backup-verification.py /usr/local/bin/
+COPY pgbackrest/scripts/backup-notification.py /usr/local/bin/
+COPY pgbackrest/scripts/setup-stanza.sh /usr/local/bin/
+COPY pgbackrest/scripts/init-backup.sh /entrypoint.sh
+
+# Füge crontab für automatische Backups hinzu
+COPY pgbackrest/scripts/crontab /etc/cron.d/pgbackrest
+RUN chmod 0644 /etc/cron.d/pgbackrest \
+    && chmod +x /usr/local/bin/*.sh /usr/local/bin/*.py /entrypoint.sh
+
+# Zugriffsrechte anpassen
+RUN chmod 750 /var/lib/pgbackrest \
+    /var/spool/pgbackrest \
+    /var/log/pgbackrest
+
+# Entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["cron", "-f"] 

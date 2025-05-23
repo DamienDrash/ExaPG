@@ -1,0 +1,56 @@
+FROM debian:bookworm-slim
+
+# Installiere notwendige Pakete
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    pgbackrest \
+    python3 \
+    python3-pip \
+    curl \
+    jq \
+    cron \
+    rsync \
+    openssh-client \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installiere Python-Pakete
+RUN pip3 install psycopg2-binary requests slackclient prometheus-client fastapi uvicorn cryptography
+
+# Erstelle erforderliche Verzeichnisse
+RUN mkdir -p /var/log/backup-verification \
+    /tmp/restore-test \
+    /app/scripts \
+    /app/metrics \
+    /var/lib/verification-data
+
+# Kopiere Verifikationsskripte
+COPY scripts/maintenance/verify-backups.py /app/scripts/
+COPY scripts/maintenance/backup-notification.py /app/scripts/
+COPY scripts/maintenance/backup-metrics.py /app/scripts/
+COPY scripts/maintenance/backup-verifier-entrypoint.sh /entrypoint.sh
+
+# Setze Berechtigungen
+RUN chmod +x /app/scripts/*.py /entrypoint.sh
+
+# Füge Cron-Jobs hinzu
+RUN echo "0 2 * * * root /app/scripts/verify-backups.py --full-verification >> /var/log/backup-verification/full-verify.log 2>&1" > /etc/cron.d/backup-verification \
+    && echo "0 */4 * * * root /app/scripts/verify-backups.py --quick-check >> /var/log/backup-verification/quick-check.log 2>&1" >> /etc/cron.d/backup-verification \
+    && echo "*/15 * * * * root /app/scripts/backup-metrics.py >> /var/log/backup-verification/metrics.log 2>&1" >> /etc/cron.d/backup-verification \
+    && chmod 0644 /etc/cron.d/backup-verification
+
+# Exponiere Port für Prometheus-Metrics
+EXPOSE 9187
+
+# Set environment variables
+ENV VERIFICATION_INTERVAL=86400 \
+    METRICS_PORT=9187 \
+    PGHOST=postgres \
+    PGUSER=postgres \
+    PGPASSWORD=postgres \
+    PGDATABASE=postgres \
+    PGBACKREST_STANZA=exapg
+
+# Entrypoint und CMD
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["cron", "-f"] 

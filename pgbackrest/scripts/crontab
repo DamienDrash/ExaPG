@@ -1,0 +1,26 @@
+# Crontab für automatisierte pgBackRest-Backups
+# m h dom mon dow user command
+
+# Täglicher inkrementeller Backup (3:00 Uhr)
+0 3 * * * root /usr/local/bin/backup-scheduler.sh --type=incr > /var/log/pgbackrest/backup-incr.log 2>&1
+
+# Wöchentlicher vollständiger Backup (Sonntag 1:00 Uhr)
+0 1 * * 0 root /usr/local/bin/backup-scheduler.sh --type=full > /var/log/pgbackrest/backup-full.log 2>&1
+
+# Differentieller Backup (Mi, Fr 4:00 Uhr)
+0 4 * * 3,5 root /usr/local/bin/backup-scheduler.sh --type=diff > /var/log/pgbackrest/backup-diff.log 2>&1
+
+# Backup-Prüfung einmal täglich (4:30 Uhr)
+30 4 * * * root /usr/local/bin/backup-verification.py --quick > /var/log/pgbackrest/verify-quick.log 2>&1
+
+# Umfassende Backup-Prüfung einmal wöchentlich (Samstag 2:00 Uhr)
+0 2 * * 6 root /usr/local/bin/backup-verification.py --full > /var/log/pgbackrest/verify-full.log 2>&1
+
+# Repository-Wartung (WAL-Archiv-Management, alte Backups löschen) (täglich 5:00 Uhr)
+0 5 * * * root pgbackrest --stanza=exapg expire > /var/log/pgbackrest/expire.log 2>&1
+
+# Benachrichtigungen über Backup-Status (täglich 6:00 Uhr)
+0 6 * * * root /usr/local/bin/backup-notification.py > /var/log/pgbackrest/notification.log 2>&1
+
+# Logrotation für Backup-Logs
+0 0 * * * root find /var/log/pgbackrest -name "*.log" -mtime +7 -exec gzip {} \; -exec mv {}.gz {}.$(date +\%Y\%m\%d).gz \; 

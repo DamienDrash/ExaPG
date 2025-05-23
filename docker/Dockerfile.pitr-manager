@@ -1,0 +1,59 @@
+FROM alpine:3.19
+
+# Installiere notwendige Pakete
+RUN apk add --no-cache \
+    postgresql-client \
+    python3 \
+    py3-pip \
+    curl \
+    jq \
+    rsync \
+    openssh-client \
+    tzdata \
+    sudo \
+    bash
+
+# Installiere pgBackRest aus edge-Repository
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
+    apk add --no-cache pgbackrest
+
+# Installiere Python-Pakete für die WebUI
+RUN pip3 install flask flask-wtf wtforms psycopg2-binary python-dateutil pytz gunicorn
+
+# Erstelle Verzeichnisstruktur
+RUN mkdir -p /app/static /app/templates /app/config /var/lib/pitr-manager /var/log/pitr-manager
+
+# Kopiere Anwendungsdateien
+COPY scripts/maintenance/pitr-manager.py /app/
+COPY scripts/maintenance/pitr-webui.py /app/
+COPY scripts/maintenance/pitr-libs.py /app/
+COPY scripts/maintenance/pitr-entrypoint.sh /entrypoint.sh
+
+# Kopiere Web-UI Dateien
+COPY scripts/maintenance/templates /app/templates/
+COPY scripts/maintenance/static /app/static/
+
+# Setze Berechtigungen
+RUN chmod +x /app/*.py /entrypoint.sh
+
+# Exponiere Port
+EXPOSE 8080
+
+# Setze Umgebungsvariablen
+ENV PITR_LISTEN_PORT=8080 \
+    PITR_LOG_LEVEL=info \
+    PGHOST=postgres \
+    PGUSER=postgres \
+    PGPASSWORD=postgres \
+    PGDATABASE=postgres \
+    PGBACKREST_STANZA=exapg \
+    PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf \
+    RETENTION_DAYS=14 \
+    TZ=Europe/Berlin
+
+# Setze Arbeitsverzeichnis
+WORKDIR /app
+
+# Entrypoint und CMD
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "pitr-webui:app"] 
