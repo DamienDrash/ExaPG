@@ -52,16 +52,16 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 - [x] Funktionsbibliothek für typische analytische Operationen erstellen
 
 ### ETL-Prozesse integrieren
-- [ ] Datenladevorgang beschleunigen (COPY-Befehl optimieren)
-- [ ] Pipeline für Change Data Capture (CDC) entwickeln
-- [ ] Automatisierte Datenqualitätsprüfungen implementieren
+- [x] Datenladevorgang beschleunigen (COPY-Befehl optimieren)
+- [x] Pipeline für Change Data Capture (CDC) entwickeln
+- [x] Automatisierte Datenqualitätsprüfungen implementieren
 
 ## Phase 4: Benutzerfreundlichkeit und Administration
 
 ### Management-UI entwickeln
-- [ ] Web-basierte Oberfläche für Cluster-Verwaltung
-- [ ] Dashboard für Performance-Monitoring und Ressourcennutzung
-- [ ] Benutzer- und Berechtigungsverwaltung vereinfachen
+- [x] Web-basierte Oberfläche für Cluster-Verwaltung
+- [x] Dashboard für Performance-Monitoring und Ressourcennutzung
+- [x] Benutzer- und Berechtigungsverwaltung vereinfachen
 
 ### Backup-/Restore-Prozesse optimieren
 - [ ] pgBackRest für inkrementelle Backups konfigurieren

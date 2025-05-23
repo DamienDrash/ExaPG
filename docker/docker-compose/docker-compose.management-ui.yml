@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # ExaPG-Hauptdatenbank (falls nicht bereits vorhanden)
+  exapg:
+    image: postgres:15
+    container_name: exapg-database
+    hostname: exapg
+    ports:
+      - "5435:5432"
+    volumes:
+      - exapg-data:/var/lib/postgresql/data
+      - ../../sql:/sql
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_INITDB_ARGS: --data-checksums
+    networks:
+      - exapg-network
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_USER:-postgres}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ExaPG Management UI
+  management-ui:
+    build:
+      context: ../../management-ui
+      dockerfile: Dockerfile
+    container_name: exapg-management-ui
+    hostname: management-ui
+    ports:
+      - "3002:80"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@exapg:5432/${POSTGRES_DB:-postgres}
+      SECRET_KEY: ${SECRET_KEY:-exapg-secret-key-change-in-production}
+      # UI-spezifische Konfiguration
+      EXAPG_CLUSTER_NAME: ${EXAPG_CLUSTER_NAME:-ExaPG Development}
+      EXAPG_ENVIRONMENT: ${EXAPG_ENVIRONMENT:-development}
+    volumes:
+      - management-ui-logs:/var/log
+    networks:
+      - exapg-network
+    depends_on:
+      exapg:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: pgAdmin für Datenbankadministration
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: exapg-pgadmin
+    hostname: pgadmin
+    ports:
+      - "5051:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@exapg.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - exapg-network
+    depends_on:
+      - exapg
+
+networks:
+  exapg-network:
+    driver: bridge
+    name: exapg-network
+
+volumes:
+  exapg-data:
+    name: exapg-data
+  management-ui-logs:
+    name: exapg-management-ui-logs
+  pgadmin-data:
+    name: exapg-pgadmin-data
