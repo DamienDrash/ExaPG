@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  pgbackrest:
+    image: exapg/pgbackrest:latest
+    container_name: exapg-pgbackrest
+    build:
+      context: ../
+      dockerfile: Dockerfile.pgbackrest
+    volumes:
+      - ../../pgbackrest/conf:/etc/pgbackrest
+      - pgbackrest_data:/var/lib/pgbackrest
+      - pgbackrest_spool:/var/spool/pgbackrest
+      - pgbackrest_logs:/var/log/pgbackrest
+    environment:
+      - PGBACKREST_REPO1_PATH=/var/lib/pgbackrest
+      - PGBACKREST_STANZA=exapg
+      - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
+      - PGHOST=${PGHOST:-localhost}
+      - PGPORT=${PGPORT:-5432}
+      - PGDATABASE=${PGDATABASE:-postgres}
+      - PGUSER=${PGUSER:-postgres}
+      - PGPASSWORD=${PGPASSWORD:-postgres}
+    networks:
+      - exapg-backup-network
+    restart: always
+
+  # Automatisierte Backup-Verifizierung
+  backup-verifier:
+    image: exapg/backup-verifier:latest
+    container_name: exapg-backup-verifier
+    build:
+      context: ../
+      dockerfile: Dockerfile.backup-verifier
+    volumes:
+      - ../../scripts/maintenance:/app/scripts
+      - ../../pgbackrest/conf:/etc/pgbackrest
+      - pgbackrest_data:/var/lib/pgbackrest:ro
+      - pgbackrest_logs:/var/log/pgbackrest
+      - backup_verification_logs:/var/log/backup-verification
+    environment:
+      - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
+      - PGBACKREST_STANZA=exapg
+      - VERIFICATION_INTERVAL=86400 # Tägliche Überprüfung
+      - SLACK_WEBHOOK_URL= # Optional für Benachrichtigungen
+      - EMAIL_NOTIFICATIONS= # Optional für E-Mail
+      - PGHOST=${PGHOST:-localhost}
+      - PGPORT=${PGPORT:-5432}
+      - PGDATABASE=${PGDATABASE:-postgres}
+      - PGUSER=${PGUSER:-postgres}
+      - PGPASSWORD=${PGPASSWORD:-postgres}
+    restart: always
+    depends_on:
+      - pgbackrest
+    networks:
+      - exapg-backup-network
+
+  # Point-in-Time Recovery UI
+  pitr-manager:
+    image: exapg/pitr-manager:latest
+    container_name: exapg-pitr-manager
+    build:
+      context: ../
+      dockerfile: Dockerfile.pitr-manager
+    ports:
+      - "8081:8080"
+    volumes:
+      - ../../scripts/maintenance:/app/scripts
+      - ../../pgbackrest/conf:/etc/pgbackrest:ro
+      - pgbackrest_logs:/var/log/pgbackrest:ro
+      - pitr_data:/var/lib/pitr-manager
+    environment:
+      - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
+      - PGBACKREST_STANZA=exapg
+      - PGHOST=${PGHOST:-localhost}
+      - PGPORT=${PGPORT:-5432}
+      - PGDATABASE=${PGDATABASE:-postgres}
+      - PGUSER=${PGUSER:-postgres}
+      - PGPASSWORD=${PGPASSWORD:-postgres}
+      - RETENTION_DAYS=14
+    restart: always
+    depends_on:
+      - pgbackrest
+    networks:
+      - exapg-backup-network
+
+networks:
+  exapg-backup-network:
+    driver: bridge
+
+volumes:
+  pgbackrest_data:
+    driver: local
+  pgbackrest_spool:
+    driver: local
+  pgbackrest_logs:
+    driver: local
+  backup_verification_logs:
+    driver: local
+  pitr_data:
+    driver: local

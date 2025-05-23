@@ -64,9 +64,9 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 - [x] Benutzer- und Berechtigungsverwaltung vereinfachen
 
 ### Backup-/Restore-Prozesse optimieren
-- [ ] pgBackRest für inkrementelle Backups konfigurieren
-- [ ] Point-in-Time-Recovery (PITR) vereinfachen
-- [ ] Automatisierte Backup-Verifizierung implementieren
+- [x] pgBackRest für inkrementelle Backups konfigurieren
+- [x] Point-in-Time-Recovery (PITR) vereinfachen
+- [x] Automatisierte Backup-Verifizierung implementieren
 
 ### Dokumentation und Migration
 - [ ] Migrationsleitfäden von Exasol zu ExaPG erstellen
