@@ -79,4 +79,23 @@ groups:
           severity: critical
         annotations:
           summary: "Citus-Knoten offline"
-          description: "Ein Citus-Knoten ist möglicherweise offline oder nicht erreichbar." 
+          description: "Ein Citus-Knoten ist möglicherweise offline oder nicht erreichbar."
+
+      # Prädiktive Alerts für Ressourcenengpässe
+      - alert: PostgreSQLPredictiveCPUOverload
+        expr: predict_linear(100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[6h])) * 100)[1h:5m], 3600 * 6) > 90
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL drohende CPU-Überlastung"
+          description: "Basierend auf dem aktuellen Trend wird die CPU-Auslastung auf {{ $labels.instance }} in den nächsten 6 Stunden über 90% steigen."
+
+      - alert: PostgreSQLPredictiveMemoryOverload
+        expr: predict_linear(100 * (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes[6h:5m], 3600 * 12) > 95
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL drohende Speicherknappheit"
+          description: "Basierend auf dem aktuellen Trend wird die Speichernutzung auf {{ $labels.instance }} in den nächsten 12 Stunden über 95% steigen." 

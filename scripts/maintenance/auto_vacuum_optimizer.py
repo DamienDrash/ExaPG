@@ -447,8 +447,8 @@ def parse_args():
     """Verarbeitet Kommandozeilenargumente."""
     parser = argparse.ArgumentParser(description='ExaPG Automatische Vacuum-Optimierung')
     
-    parser.add_argument('-H', '--host', default='localhost',
-                        help='PostgreSQL-Host (Standard: localhost)')
+    parser.add_argument('-H', '--host', default=os.getenv('PGHOST', 'localhost'),
+                        help='PostgreSQL-Host (Standard: PGHOST oder localhost)')
     parser.add_argument('-p', '--port', type=int, default=5432,
                         help='PostgreSQL-Port (Standard: 5432)')
     parser.add_argument('-d', '--dbname', required=True,
