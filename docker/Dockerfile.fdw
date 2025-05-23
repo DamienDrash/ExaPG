@@ -83,12 +83,12 @@ RUN echo "columnar.compression = 'zstd'" >> /etc/postgresql/postgresql.conf.samp
     echo "columnar.compression_level = 3" >> /etc/postgresql/postgresql.conf.sample
 
 # Kopiere Initialisierungsskripte
-COPY scripts/init-fdw.sh /docker-entrypoint-initdb.d/
-COPY scripts/columnar-config.sh /docker-entrypoint-initdb.d/
-COPY scripts/partition-strategies.sh /docker-entrypoint-initdb.d/
-COPY scripts/memory-optimized.sh /docker-entrypoint-initdb.d/
-COPY scripts/create_partition_strategies.sql /docker-entrypoint-initdb.d/partition-strategies.sql
-COPY scripts/plpgsql_optimizer.sql /docker-entrypoint-initdb.d/plpgsql-optimizer.sql
+COPY scripts/init/init-fdw.sh /docker-entrypoint-initdb.d/
+COPY scripts/optimization/columnar-config.sh /docker-entrypoint-initdb.d/
+COPY scripts/optimization/partition-strategies.sh /docker-entrypoint-initdb.d/
+COPY scripts/optimization/memory-optimized.sh /docker-entrypoint-initdb.d/
+COPY scripts/init/create_partition_strategies.sql /docker-entrypoint-initdb.d/partition-strategies.sql
+COPY scripts/optimization/plpgsql_optimizer.sql /docker-entrypoint-initdb.d/plpgsql-optimizer.sql
 RUN chmod +x /docker-entrypoint-initdb.d/init-fdw.sh && \
     chmod +x /docker-entrypoint-initdb.d/columnar-config.sh && \
     chmod +x /docker-entrypoint-initdb.d/partition-strategies.sh && \

@@ -86,6 +86,13 @@ Checkliste für die vollständige Implementierung einer Exasol-Alternative mit P
 - [x] Automatische Vacuum- und Maintenance-Optimierung
 
 ### Reporting und Alerting
-- [ ] Benutzerdefinierte Benachrichtigungen für Performance-Probleme
-- [ ] Regelmäßige Leistungsberichte für Administratoren
-- [ ] Audit-Logging für Sicherheit und Compliance 
+- [x] Benutzerdefinierte Benachrichtigungen für Performance-Probleme
+- [x] Regelmäßige Leistungsberichte für Administratoren
+- [x] Audit-Logging für Sicherheit und Compliance
+
+## Phase 6: Optimierung der Benutzeroberfläche
+
+### Optimierung der Kommandozeilenschnittstelle
+- [x] Interaktive CLI für die Verwaltung aller ExaPG-Komponenten
+- [x] Vereinheitlichte Befehle für Start, Stopp und Statusabfragen
+- [x] Menügeführte Benutzerschnittstelle für einfache Bedienung 

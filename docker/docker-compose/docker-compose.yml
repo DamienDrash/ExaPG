@@ -166,4 +166,4 @@ volumes:
   worker1_data:
     driver: local
   worker2_data:
-    driver: local 
+    driver: local

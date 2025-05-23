@@ -408,4 +408,14 @@ curl -X POST http://localhost:5000/api/cluster/add-worker
 curl -X POST http://localhost:5000/api/cluster/rebalance
 ```
 
-Die Cluster-Erweiterung ist vollständig automatisiert und bleibt auch nach einem Neustart oder einer neuen Installation erhalten, da alle Konfigurationen persistent gespeichert werden. 
+Die Cluster-Erweiterung ist vollständig automatisiert und bleibt auch nach einem Neustart oder einer neuen Installation erhalten, da alle Konfigurationen persistent gespeichert werden.
+
+## Einfache Verwendung mit interaktiver CLI
+
+ExaPG verfügt über eine interaktive Terminal-Schnittstelle, die alle Start- und Stopp-Skripte ersetzt:
+
+```bash
+./exapg-cli.sh
+```
+
+Die CLI bietet ein benutzerfreundliches Menü zum Starten, Stoppen und Verwalten aller ExaPG-Komponenten. Weitere Informationen finden Sie in der [CLI-Dokumentation](README-CLI.md). 
