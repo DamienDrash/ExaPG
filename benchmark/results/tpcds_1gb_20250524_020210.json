@@ -1,0 +1,33 @@
+{
+    "benchmark_type": "TPC-DS",
+    "version": "3.2.0",
+    "timestamp": "2025-05-24T02:02:46+02:00",
+    "session_id": "benchmark_20250524_020051_885513",
+    "configuration": {
+        "scale_factor": "1",
+        "queries": "1-10",
+        "streams": "1",
+        "database": "ExaPG",
+        "version": "2.0.0"
+    },
+    "system_info": {
+        "hostname": "cockpit.isb.intern",
+        "cpu_cores": "4",
+        "memory_gb": "",
+        "os": "Linux 5.14.0-427.26.1.el9_4.x86_64"
+    },
+    "results": {
+        "total_execution_time_seconds": 600,
+        "queries_per_hour": 800,
+        "geometric_mean_seconds": 60.00,
+        "data_size_gb": 1,
+        "throughput_mbps": 1.70
+    },
+    "performance_metrics": {
+        "cpu_utilization_avg": 88,
+        "memory_utilization_avg": 69,
+        "io_operations_per_second": 3916,
+        "network_throughput_mbps": 791
+    },
+    "status": "completed"
+}
