@@ -13,7 +13,6 @@ The ExaPG project now features an **extensive and well-organized documentation l
 ```
 📁 ExaPG Project Root
 ├── 📄 README.md (15KB, 421 lines) - ⭐ MAIN DOCUMENTATION ✅ UPDATED
-├── 📄 README-CLI.md (5.9KB, 160 lines) - CLI-specific ✅ UPDATED
 ├── 📄 CONTRIBUTING.md ⭐ NEW - Contribution guidelines
 ├── 📄 CHANGELOG.md ⭐ NEW - Release history
 ├── 📄 TODO.md (4.3KB, 98 lines) - Development roadmap ✅ UPDATED
@@ -25,7 +24,8 @@ The ExaPG project now features an **extensive and well-organized documentation l
 │   ├── 📁 user-guide/ ⭐ NEW DIRECTORY
 │   │   ├── 📄 getting-started.md ⭐ NEW (10KB, 310 lines)
 │   │   ├── 📄 installation.md ⭐ NEW (17KB, 515 lines)
-│   │   └── 📄 troubleshooting.md ⭐ NEW (23KB, 686 lines)
+│   │   ├── 📄 troubleshooting.md ⭐ NEW (23KB, 686 lines)
+│   │   └── 📄 cli-reference.md ✅ MOVED from README-CLI.md (9.5KB, 295 lines)
 │   ├── 📁 technical/ ⭐ NEW DIRECTORY
 │   │   ├── 📄 architecture.md ✅ MOVED from README.structure.md
 │   │   └── 📄 analysis-report.md ✅ MOVED from ANALYSIS_REPORT.md
@@ -69,7 +69,7 @@ The ExaPG project now features an **extensive and well-organized documentation l
 - ✅ `docs/user-guide/getting-started.md` - Quick start tutorial **NEW**
 - ✅ `docs/user-guide/installation.md` - Detailed installation guide **NEW**
 - ✅ `docs/user-guide/troubleshooting.md` - Comprehensive problem solving **NEW**
-- ✅ `README-CLI.md` - CLI user documentation in English
+- ✅ `docs/user-guide/cli-reference.md` - CLI user documentation **RELOCATED**
 - ✅ `docs/migration-guide.md` - Migration guidelines
 - ✅ `CONTRIBUTING.md` - Contribution guidelines **NEW**
 - ✅ `docs/INDEX.md` - Central navigation hub **ENHANCED**

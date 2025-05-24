@@ -290,6 +290,6 @@ The CLI will automatically detect and use these configurations.
 ---
 
 **Related Documentation:**
-- [Main README](README.md) - Complete project overview
-- [Architecture Guide](README.structure.md) - System architecture
-- [Contributing Guide](CONTRIBUTING.md) - Development guidelines 
+- [Main README](../../README.md) - Complete project overview
+- [Architecture Guide](../technical/architecture.md) - System architecture
+- [Contributing Guide](../../CONTRIBUTING.md) - Development guidelines 

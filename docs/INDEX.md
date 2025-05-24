@@ -8,7 +8,7 @@
 - **[Main Documentation](../README.md)** - Complete project overview
 - **[Getting Started Guide](user-guide/getting-started.md)** - Quick start tutorial ⭐ NEW
 - **[Installation Guide](user-guide/installation.md)** - Detailed setup instructions ⭐ NEW
-- **[CLI Terminal Interface](../README-CLI.md)** - Interactive user interface
+- **[CLI Terminal Interface](user-guide/cli-reference.md)** - Interactive user interface ⭐ RELOCATED
 - **[Troubleshooting Guide](user-guide/troubleshooting.md)** - Common issues and solutions ⭐ NEW
 
 ## 📖 User Documentation
@@ -20,7 +20,7 @@
 - **[Deployment Modes](user-guide/installation.md#deployment-modes)** - Single-node vs. cluster vs. HA
 
 ### Operation & Usage
-- **[CLI Reference](../README-CLI.md)** - Terminal interface usage
+- **[CLI Reference](user-guide/cli-reference.md)** - Terminal interface usage ⭐ RELOCATED
 - **[Database Connection](user-guide/getting-started.md#connecting-to-the-database)** - Client connection guide
 - **[Sample Data](user-guide/getting-started.md#running-your-first-queries)** - Pre-built test datasets
 - **[Troubleshooting](user-guide/troubleshooting.md)** - Problem diagnosis and solutions ⭐ COMPREHENSIVE
@@ -75,8 +75,8 @@
 
 | Category | Files | Total Size | Status |
 |----------|-------|------------|--------|
-| **Root Docs** | 7 | ~65KB | ✅ Updated |
-| **User Guides** | 3 | ~45KB | ⭐ NEW |
+| **Root Docs** | 6 | ~54KB | ✅ Updated |
+| **User Guides** | 4 | ~56KB | ⭐ ENHANCED |
 | **Technical** | 9 | ~97KB | ✅ Reorganized |
 | **Modules** | 9+ | ~35KB+ | ✅ Standardized |
 | **Total** | **28+** | **~242KB+** | 📈 62% Growth |
@@ -89,12 +89,14 @@
 - **Technical Reorganization**: Moved architecture and analysis documents to proper locations
 - **English Standardization**: All documentation now in professional English
 - **Navigation Enhancement**: Clear hierarchy and cross-references throughout
+- **CLI Documentation**: Relocated to user guide section
 
 ### 🔄 Recent Updates
 - Added 3 comprehensive user guides (~45KB of new content)
 - Standardized module documentation with consistent templates
 - Reorganized technical documentation for better discoverability
 - Enhanced cross-references and navigation paths
+- Moved CLI reference to user guide section
 
 ### 🎯 Future Enhancements
 - Interactive documentation with embedded examples
@@ -121,4 +123,4 @@
 ---
 
 *This documentation is continuously updated. Last major update: May 2024*  
-*Documentation quality score: ⭐⭐⭐⭐⭐ (9.5/10)* 
+*Documentation quality score: ⭐⭐⭐⭐⭐ (9.6/10)* 

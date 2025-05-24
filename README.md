@@ -376,12 +376,12 @@ Automated alerts for:
 📚 **[Complete Documentation Index](docs/INDEX.md)**
 
 ### User Guides
-- [CLI Reference](README-CLI.md) - Interactive terminal interface
+- [CLI Reference](docs/user-guide/cli-reference.md) - Interactive terminal interface
 - [Migration Guide](docs/migration-guide.md) - Migrating from Exasol
 - [Performance Tuning](docs/performance-tuning.md) - Optimization strategies
 
 ### Technical Documentation  
-- [Architecture Guide](README.structure.md) - System architecture
+- [Architecture Guide](docs/technical/architecture.md) - System architecture
 - [SQL Compatibility](docs/sql-compatibility.md) - Exasol SQL support
 - [Data Integration](docs/data-integration.md) - FDW and ETL processes
 
