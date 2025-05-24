@@ -16,7 +16,7 @@ The 2.0.0 release represents a major milestone in ExaPG development with enterpr
 ```bash
 git clone https://github.com/DamienDrash/ExaPG.git --branch v2.0.0
 cd ExaPG
-./scripts/cli/exapg-cli.sh
+./exapg
 ```
 
 **📚 Full Release Notes:** See [CHANGELOG.md](CHANGELOG.md#200---2024-05-24)
@@ -110,7 +110,7 @@ git clone https://github.com/DamienDrash/ExaPG.git
 cd ExaPG
 
 # Start with interactive CLI
-./scripts/cli/exapg-cli.sh
+./exapg
 ```
 
 ### Specific Version
@@ -122,19 +122,20 @@ cd ExaPG
 
 # Configure and start
 cp .env.example .env
-./scripts/cli/exapg-cli.sh
+./exapg
 ```
 
 ### Docker Installation
 
 ```bash
-# Using Docker Compose
-docker-compose up -d
+# Start with the interactive CLI and select deployment mode
+./exapg
+# Option 1: ExaPG Standard (Single-node)
+# Option 2: ExaPG Citus (Cluster mode)
+# Option 3: ExaPG HA (High availability)
 
-# Or with specific deployment mode
-./start-exapg.sh         # Single-node
-./start-exapg-citus.sh   # Cluster mode
-./start-exapg-ha.sh      # High availability
+# For advanced users who prefer direct docker-compose:
+docker-compose up -d
 ```
 
 ---

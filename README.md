@@ -61,14 +61,8 @@
 git clone https://github.com/DamienDrash/ExaPG.git
 cd ExaPG
 
-# Start single-node deployment
-./scripts/cli/exapg-cli.sh
-
-# Or use direct startup scripts
-./start-exapg.sh                    # Single-node mode
-./start-exapg-citus.sh             # Cluster mode (3 nodes)
-./start-cluster-management.sh      # With management UI
-./start-monitoring.sh              # Add monitoring stack
+# Start with interactive CLI
+./exapg
 ```
 
 **Connect to Database:**
@@ -135,11 +129,8 @@ ExaPG provides flexible deployment architectures:
 
 3. **Start ExaPG**
    ```bash
-   # Interactive CLI (recommended)
-   ./scripts/cli/exapg-cli.sh
-   
-   # Or direct deployment
-   ./start-exapg.sh
+   # Interactive CLI
+   ./exapg
    ```
 
 4. **Verify Installation**
@@ -190,7 +181,7 @@ CHECKPOINT_COMPLETION_TARGET=0.9
 The recommended way to manage ExaPG:
 
 ```bash
-./scripts/cli/exapg-cli.sh
+./exapg
 ```
 
 Features:
@@ -245,10 +236,11 @@ ORDER BY distance LIMIT 10;
 
 ### Single-Node Mode
 
-Ideal for development, testing, and smaller production environments:
+Ideal for development, testing, and smaller production environments. Start via the CLI:
 
 ```bash
-./start-exapg.sh
+./exapg
+# Select option 1: ExaPG Standard
 ```
 
 - All extensions on single PostgreSQL server
@@ -260,7 +252,8 @@ Ideal for development, testing, and smaller production environments:
 Horizontal scaling across multiple nodes:
 
 ```bash  
-./start-exapg-citus.sh
+./exapg
+# Select option 2: ExaPG Citus
 ```
 
 - 1 coordinator + 2-10 worker nodes
@@ -273,7 +266,8 @@ Horizontal scaling across multiple nodes:
 Enterprise deployment with automatic failover:
 
 ```bash
-./start-exapg-ha.sh  
+./exapg
+# Select option 3: ExaPG HA
 ```
 
 - Primary/standby configuration with Patroni
@@ -335,9 +329,10 @@ ExaPG includes an enterprise-grade benchmark suite:
 
 ### Prometheus + Grafana Stack
 
-Start monitoring with:
+Start monitoring through the CLI:
 ```bash
-./start-monitoring.sh
+./exapg
+# Select option 4: Monitoring Stack
 ```
 
 **Access Dashboards:**
@@ -469,10 +464,12 @@ For enterprise deployments and commercial support, please contact the developmen
 
 1. **Connection Issues**
    ```bash
-   # Check container status
-   docker-compose ps
+   # Check status via CLI
+   ./exapg
+   # Press 's' for detailed status
    
-   # View logs
+   # For advanced debugging:
+   docker-compose ps
    docker-compose logs coordinator
    ```
 
@@ -482,12 +479,18 @@ For enterprise deployments and commercial support, please contact the developmen
    ./scripts/test-performance.sh
    
    # Check monitoring dashboards
+   # First ensure monitoring is running:
+   ./exapg  # Select option 4: Monitoring Stack
+   # Then access Grafana:
    open http://localhost:3000
    ```
 
 3. **Memory Issues**
    ```bash
-   # Adjust memory settings in .env
+   # Edit configuration through CLI:
+   ./exapg  # Press 'e' to edit .env
+   
+   # Or manually adjust settings in .env:
    COORDINATOR_MEMORY_LIMIT=16g
    SHARED_BUFFERS=4GB
    ```
