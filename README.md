@@ -89,12 +89,12 @@ ExaPG provides flexible deployment architectures:
 ┌─────────────────┐    ┌─────────────────┐    ┌────────────────────┐
 │   Single-Node   │    │    Cluster      │    │  High-Availability │
 │                 │    │                 │    │                    │
-│ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌───────────────┐ │
-│ │ PostgreSQL  │ │    │ │ Coordinator │ │    │ │Primary+Standby│ │
-│ │   + Citus   │ │    │ │             │ │    │ │   + Patroni   │ │
-│ │+TimescaleDB │ │    │ └─────────────┘ │    │ │   + pgBouncer │ │
-│ │  + PostGIS  │ │    │ ┌─────────────┐ │    │ └───────────────┘ │
-│ │ + pgvector  │ │    │ │  Worker 1   │ │    │ ┌───────────────┐ │
+│ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌────────────────┐ │
+│ │ PostgreSQL  │ │    │ │ Coordinator │ │    │ │Primary+Standby │ │
+│ │   + Citus   │ │    │ │             │ │    │ │   + Patroni    │ │
+│ │+TimescaleDB │ │    │ └─────────────┘ │    │ │   + pgBouncer  │ │
+│ │  + PostGIS  │ │    │ ┌─────────────┐ │    │ └────────────────┘ │
+│ │ + pgvector  │ │    │ │  Worker 1   │ │    │ ┌────────────────┐ │
 │ └─────────────┘ │    │ │  Worker 2   │ │    │ │  Monitoring   │ │
 └─────────────────┘    │ │  Worker N   │ │    │ │Stack + Alerts │ │
                        │ └─────────────┘ │    │ └───────────────┘ │
