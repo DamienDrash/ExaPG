@@ -8,12 +8,17 @@ This guide helps you diagnose and resolve common issues with ExaPG.
 - [Installation Issues](#installation-issues)
 - [Connection Problems](#connection-problems)
 - [Performance Issues](#performance-issues)
+- [Memory Issues](#memory-issues)
 - [Cluster Problems](#cluster-problems)
+- [SSL/TLS Problems](#ssltls-problems)
 - [Extension Issues](#extension-issues)
 - [Data Issues](#data-issues)
 - [Monitoring Problems](#monitoring-problems)
 - [Common Error Messages](#common-error-messages)
-- [Debug Tools](#debug-tools)
+- [Advanced Debugging Tools](#advanced-debugging-tools)
+- [Performance Profiling](#performance-profiling)
+- [Network Debugging](#network-debugging)
+- [Log Analysis](#log-analysis)
 - [Getting Help](#getting-help)
 
 ## Quick Diagnosis
@@ -362,6 +367,43 @@ find /var/lib/docker -type f -size +1G -exec ls -lh {} \;
    sudo systemctl start docker
    ```
 
+## Memory Issues
+
+### High Memory Usage
+
+**Problem**: Excessive memory consumption
+
+**Diagnostics**:
+```bash
+# Check container memory usage
+docker stats --no-stream
+
+# Check PostgreSQL memory
+docker exec -it exapg-coordinator psql -U postgres -c "SHOW shared_buffers;"
+docker exec -it exapg-coordinator psql -U postgres -c "SHOW work_mem;"
+```
+
+**Solutions**:
+
+1. **Limit container memory**:
+   ```yaml
+   # In docker-compose.yml
+   services:
+     coordinator:
+       mem_limit: 8g
+       memswap_limit: 8g
+   ```
+
+2. **Adjust PostgreSQL settings**:
+   ```sql
+   -- Reduce work_mem for specific session
+   SET work_mem = '64MB';
+   
+   -- Or globally in postgresql.conf
+   ALTER SYSTEM SET work_mem = '64MB';
+   SELECT pg_reload_conf();
+   ```
+
 ## Cluster Problems
 
 ### Worker Node Not Connecting
@@ -423,6 +465,138 @@ FROM pg_dist_partition;
    -- Undistribute and redistribute
    SELECT undistribute_table('tablename');
    SELECT create_distributed_table('tablename', 'distribution_column');
+   ```
+
+## SSL/TLS Problems
+
+### SSL Certificate Issues
+
+**Problem**: `SSL certificate verification failed` or `SSL connection not available`
+
+**Diagnostic Steps**:
+
+1. **Check SSL configuration**:
+   ```bash
+   # Check if SSL is enabled
+   docker exec -it exapg-coordinator psql -U postgres -c "SHOW ssl;"
+   
+   # Check SSL certificate files
+   docker exec -it exapg-coordinator ls -la /etc/ssl/certs/
+   docker exec -it exapg-coordinator ls -la /etc/ssl/private/
+   ```
+
+2. **Verify certificate validity**:
+   ```bash
+   # Check certificate expiration
+   docker exec -it exapg-coordinator openssl x509 -in /etc/ssl/certs/server.crt -noout -dates
+   
+   # Verify certificate chain
+   docker exec -it exapg-coordinator openssl verify -CAfile /etc/ssl/certs/ca.crt /etc/ssl/certs/server.crt
+   ```
+
+**Solutions**:
+
+1. **Generate new SSL certificates**:
+   ```bash
+   # Create SSL certificate directory
+   mkdir -p config/ssl
+   
+   # Generate private key
+   openssl genrsa -out config/ssl/server.key 2048
+   
+   # Generate certificate
+   openssl req -new -x509 -key config/ssl/server.key -out config/ssl/server.crt -days 365 \
+     -subj "/C=US/ST=State/L=City/O=Organization/CN=exapg-coordinator"
+   
+   # Set proper permissions
+   chmod 600 config/ssl/server.key
+   chmod 644 config/ssl/server.crt
+   ```
+
+2. **Update Docker Compose SSL configuration**:
+   ```yaml
+   # In docker-compose.yml
+   coordinator:
+     volumes:
+       - ./config/ssl:/etc/ssl/certs:ro
+       - ./config/ssl:/etc/ssl/private:ro
+     environment:
+       - POSTGRES_SSL=on
+       - POSTGRES_SSL_CERT_FILE=/etc/ssl/certs/server.crt
+       - POSTGRES_SSL_KEY_FILE=/etc/ssl/private/server.key
+   ```
+
+3. **Fix certificate permissions**:
+   ```bash
+   # Fix ownership (PostgreSQL runs as user postgres, UID 999)
+   docker exec -it exapg-coordinator chown postgres:postgres /etc/ssl/private/server.key
+   docker exec -it exapg-coordinator chmod 600 /etc/ssl/private/server.key
+   ```
+
+### SSL Connection Refused
+
+**Problem**: `SSL connection refused` or `SSL not supported`
+
+**Solutions**:
+
+1. **Enable SSL in postgresql.conf**:
+   ```sql
+   -- Connect to database and enable SSL
+   ALTER SYSTEM SET ssl = 'on';
+   ALTER SYSTEM SET ssl_cert_file = '/etc/ssl/certs/server.crt';
+   ALTER SYSTEM SET ssl_key_file = '/etc/ssl/private/server.key';
+   SELECT pg_reload_conf();
+   ```
+
+2. **Update pg_hba.conf for SSL**:
+   ```bash
+   # Edit pg_hba.conf to require SSL
+   docker exec -it exapg-coordinator bash -c "
+   echo 'hostssl all all 0.0.0.0/0 md5' >> /var/lib/postgresql/data/pg_hba.conf
+   echo 'host all all 0.0.0.0/0 reject' >> /var/lib/postgresql/data/pg_hba.conf
+   "
+   
+   # Reload configuration
+   docker exec -it exapg-coordinator psql -U postgres -c "SELECT pg_reload_conf();"
+   ```
+
+3. **Test SSL connection**:
+   ```bash
+   # Test SSL connection with psql
+   docker exec -it exapg-coordinator psql "sslmode=require host=localhost dbname=exadb user=postgres"
+   
+   # Test with openssl
+   docker exec -it exapg-coordinator openssl s_client -connect localhost:5432 -starttls postgres
+   ```
+
+### SSL Certificate Verification Failed
+
+**Problem**: `SSL certificate verification failed` or `certificate verify failed`
+
+**Solutions**:
+
+1. **Use self-signed certificate with proper configuration**:
+   ```bash
+   # Connect with SSL but skip verification
+   psql "sslmode=require sslcert=client.crt sslkey=client.key sslrootcert=ca.crt host=localhost dbname=exadb user=postgres"
+   ```
+
+2. **Configure client certificate authentication**:
+   ```bash
+   # Generate client certificate
+   openssl genrsa -out config/ssl/client.key 2048
+   openssl req -new -key config/ssl/client.key -out config/ssl/client.csr \
+     -subj "/C=US/ST=State/L=City/O=Organization/CN=postgres"
+   openssl x509 -req -in config/ssl/client.csr -CA config/ssl/ca.crt -CAkey config/ssl/ca.key \
+     -out config/ssl/client.crt -days 365 -CAcreateserial
+   ```
+
+3. **Update pg_hba.conf for certificate authentication**:
+   ```bash
+   # Add certificate authentication
+   docker exec -it exapg-coordinator bash -c "
+   echo 'hostssl all postgres 0.0.0.0/0 cert' >> /var/lib/postgresql/data/pg_hba.conf
+   "
    ```
 
 ## Extension Issues
@@ -589,42 +763,700 @@ ALTER SYSTEM SET max_locks_per_transaction = 128;
 SELECT pg_reload_conf();
 ```
 
-## Debug Tools
+## Advanced Debugging Tools
 
-### Enable Detailed Logging
+### Container-Level Debugging
 
-```sql
--- Enable statement logging
-ALTER SYSTEM SET log_statement = 'all';
-ALTER SYSTEM SET log_duration = on;
+**System Information Collection**:
+```bash
+# Comprehensive system diagnostics
+./scripts/collect-system-info.sh() {
+  echo "=== ExaPG System Diagnostics ==="
+  
+  # Docker environment
+  echo "--- Docker Information ---"
+  docker version
+  docker info | grep -E "(Server Version|Storage Driver|Logging Driver|Cgroup Driver)"
+  
+  # Container status
+  echo "--- Container Status ---"
+  docker-compose ps -a
+  
+  # Resource usage
+  echo "--- Resource Usage ---"
+  docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}"
+  
+  # Network information
+  echo "--- Network Information ---"
+  docker network ls
+  docker network inspect exapg_default | jq '.[0].IPAM'
+  
+  # Volume information
+  echo "--- Volume Information ---"
+  docker volume ls | grep exapg
+  docker system df
+}
+```
+
+**Process Analysis**:
+```bash
+# PostgreSQL process analysis
+analyze_postgres_processes() {
+  # Get process information
+  docker exec -it exapg-coordinator bash -c "
+    echo '=== PostgreSQL Processes ==='
+    ps aux | grep postgres
+    
+    echo '=== Active Connections ==='
+    psql -U postgres -d exadb -c \"
+      SELECT pid, usename, application_name, client_addr, state, 
+             query_start, state_change, query 
+      FROM pg_stat_activity 
+      WHERE state != 'idle' 
+      ORDER BY query_start;
+    \"
+    
+    echo '=== Lock Information ==='
+    psql -U postgres -d exadb -c \"
+      SELECT l.locktype, l.database, l.relation, l.page, l.tuple, l.virtualxid,
+             l.transactionid, l.mode, l.granted, a.query
+      FROM pg_locks l
+      LEFT JOIN pg_stat_activity a ON l.pid = a.pid
+      WHERE NOT l.granted
+      ORDER BY l.pid;
+    \"
+  "
+}
+```
+
+**Configuration Dump**:
+```bash
+# Complete configuration analysis
+dump_configuration() {
+  docker exec -it exapg-coordinator bash -c "
+    echo '=== PostgreSQL Configuration ==='
+    psql -U postgres -d exadb -c \"
+      SELECT name, setting, unit, context, boot_val, reset_val
+      FROM pg_settings
+      WHERE name IN (
+        'shared_buffers', 'work_mem', 'maintenance_work_mem',
+        'effective_cache_size', 'max_connections', 'wal_buffers',
+        'checkpoint_completion_target', 'random_page_cost'
+      )
+      ORDER BY name;
+    \"
+    
+    echo '=== Extension Information ==='
+    psql -U postgres -d exadb -c \"
+      SELECT extname, extversion, extrelocatable
+      FROM pg_extension
+      ORDER BY extname;
+    \"
+  "
+}
+```
+
+### Database-Level Debugging
+
+**Query Analysis Tools**:
+```bash
+# Advanced query analysis
+analyze_query_performance() {
+  docker exec -it exapg-coordinator psql -U postgres -d exadb << 'EOF'
+-- Enable detailed query analysis
+SET log_statement = 'all';
+SET log_duration = on;
+SET log_lock_waits = on;
+SET log_min_duration_statement = 100;
+
+-- Check for long-running queries
+SELECT 
+  pid,
+  now() - pg_stat_activity.query_start AS duration,
+  query,
+  state,
+  wait_event_type,
+  wait_event
+FROM pg_stat_activity 
+WHERE (now() - pg_stat_activity.query_start) > interval '30 seconds'
+AND state != 'idle'
+ORDER BY duration DESC;
+
+-- Analyze table statistics
+SELECT 
+  schemaname,
+  tablename,
+  n_live_tup,
+  n_dead_tup,
+  n_tup_ins,
+  n_tup_upd,
+  n_tup_del,
+  last_vacuum,
+  last_autovacuum,
+  last_analyze,
+  last_autoanalyze
+FROM pg_stat_user_tables
+ORDER BY n_dead_tup DESC;
+
+-- Check index usage
+SELECT 
+  schemaname,
+  tablename,
+  indexname,
+  idx_tup_read,
+  idx_tup_fetch,
+  idx_scan
+FROM pg_stat_user_indexes
+WHERE idx_scan = 0
+ORDER BY schemaname, tablename;
+EOF
+}
+```
+
+**Index Analysis**:
+```bash
+# Index optimization analysis
+analyze_indexes() {
+  docker exec -it exapg-coordinator psql -U postgres -d exadb << 'EOF'
+-- Find unused indexes
+SELECT 
+  schemaname,
+  tablename,
+  indexname,
+  idx_scan,
+  pg_size_pretty(pg_relation_size(indexrelid)) as size
+FROM pg_stat_user_indexes
+WHERE idx_scan < 50
+ORDER BY pg_relation_size(indexrelid) DESC;
+
+-- Find duplicate indexes
+SELECT 
+  pg_size_pretty(SUM(pg_relation_size(idx))::BIGINT) AS SIZE,
+  (array_agg(idx))[1] AS idx1, 
+  (array_agg(idx))[2] AS idx2
+FROM (
+  SELECT 
+    indexrelid::regclass AS idx, 
+    (indrelid::text ||E'\n'|| indclass::text ||E'\n'|| indkey::text ||E'\n'||
+     COALESCE(indexprs::text,'')||E'\n' || COALESCE(indpred::text,'')) AS KEY
+  FROM pg_index
+) sub
+GROUP BY KEY 
+HAVING COUNT(*) > 1
+ORDER BY SUM(pg_relation_size(idx)) DESC;
+
+-- Analyze table bloat
+SELECT 
+  tablename,
+  pg_size_pretty(pg_total_relation_size(tablename::regclass)) as size,
+  pg_size_pretty(pg_relation_size(tablename::regclass)) as table_size,
+  pg_size_pretty(pg_total_relation_size(tablename::regclass) - pg_relation_size(tablename::regclass)) as index_size
+FROM pg_tables 
+WHERE schemaname NOT IN ('information_schema', 'pg_catalog')
+ORDER BY pg_total_relation_size(tablename::regclass) DESC;
+EOF
+}
+```
+
+## Performance Profiling
+
+### Query Performance Profiling
+
+**Detailed EXPLAIN Analysis**:
+```bash
+# Query profiling with detailed analysis
+profile_query() {
+  local query="$1"
+  
+  docker exec -it exapg-coordinator psql -U postgres -d exadb << EOF
+-- Enable timing and analyze
+\timing on
+
+-- Detailed execution plan
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE, FORMAT JSON) $query;
+
+-- Show query planning time
+SET track_planning = on;
+EXPLAIN ANALYZE $query;
+
+-- Check if parallel execution is possible
+SET max_parallel_workers_per_gather = 4;
+EXPLAIN (ANALYZE, BUFFERS) $query;
+EOF
+}
+```
+
+**Benchmark Testing**:
+```bash
+# Performance benchmarking
+run_benchmarks() {
+  echo "=== Running ExaPG Performance Benchmarks ==="
+  
+  # Initialize pgbench
+  docker exec -it exapg-coordinator bash -c "
+    # Install pgbench if not available
+    apt-get update && apt-get install -y postgresql-contrib
+    
+    # Initialize benchmark database
+    pgbench -i -s 10 -U postgres exadb
+    
+    # Run read-only benchmark
+    echo 'Running read-only benchmark...'
+    pgbench -S -c 10 -j 2 -T 60 -U postgres exadb
+    
+    # Run read-write benchmark
+    echo 'Running read-write benchmark...'
+    pgbench -c 10 -j 2 -T 60 -U postgres exadb
+    
+    # Custom analytical workload
+    echo 'Running analytical workload...'
+    pgbench -f <(cat << 'BENCH_EOF'
+SELECT 
+  AVG(abalance) as avg_balance,
+  COUNT(*) as account_count,
+  SUM(abalance) as total_balance
+FROM pgbench_accounts
+WHERE abalance > 1000
+GROUP BY bid
+ORDER BY avg_balance DESC
+LIMIT 10;
+BENCH_EOF
+    ) -c 5 -j 1 -T 30 -U postgres exadb
+  "
+}
+```
+
+**Connection Pool Analysis**:
+```bash
+# Analyze connection pooling performance
+analyze_connections() {
+  docker exec -it exapg-coordinator psql -U postgres -d exadb << 'EOF'
+-- Connection statistics
+SELECT 
+  state,
+  COUNT(*) as connection_count,
+  AVG(EXTRACT(EPOCH FROM (now() - state_change))) as avg_duration_seconds
+FROM pg_stat_activity
+GROUP BY state
+ORDER BY connection_count DESC;
+
+-- Check for connection limits
+SELECT 
+  setting as max_connections,
+  (SELECT COUNT(*) FROM pg_stat_activity) as current_connections,
+  ROUND(((SELECT COUNT(*) FROM pg_stat_activity)::float / setting::float) * 100, 2) as usage_percent
+FROM pg_settings 
+WHERE name = 'max_connections';
+
+-- Wait events analysis
+SELECT 
+  wait_event_type,
+  wait_event,
+  COUNT(*) as wait_count
+FROM pg_stat_activity
+WHERE wait_event IS NOT NULL
+GROUP BY wait_event_type, wait_event
+ORDER BY wait_count DESC;
+EOF
+}
+```
+
+### Resource Profiling
+
+**Memory Usage Analysis**:
+```bash
+# Comprehensive memory analysis
+analyze_memory_usage() {
+  echo "=== Memory Usage Analysis ==="
+  
+  # System memory
+  echo "--- System Memory ---"
+  free -h
+  
+  # Container memory
+  echo "--- Container Memory ---"
+  docker stats --no-stream --format "table {{.Container}}\t{{.MemUsage}}\t{{.MemPerc}}"
+  
+  # PostgreSQL memory usage
+  echo "--- PostgreSQL Memory Configuration ---"
+  docker exec -it exapg-coordinator psql -U postgres -d exadb -c "
+    SELECT 
+      name,
+      setting,
+      unit,
+      CASE 
+        WHEN unit = '8kB' THEN pg_size_pretty((setting::bigint) * 8192)
+        WHEN unit = 'kB' THEN pg_size_pretty((setting::bigint) * 1024)
+        WHEN unit = 'MB' THEN pg_size_pretty((setting::bigint) * 1024 * 1024)
+        ELSE setting || COALESCE(unit, '')
+      END as formatted_value
+    FROM pg_settings
+    WHERE name IN (
+      'shared_buffers', 'work_mem', 'maintenance_work_mem',
+      'effective_cache_size', 'wal_buffers', 'temp_buffers'
+    )
+    ORDER BY name;
+  "
+  
+  # Check for memory-intensive queries
+  echo "--- Memory-Intensive Queries ---"
+  docker exec -it exapg-coordinator psql -U postgres -d exadb -c "
+    SELECT 
+      query,
+      calls,
+      total_time,
+      mean_time,
+      temp_blks_read,
+      temp_blks_written,
+      local_blks_read,
+      local_blks_written
+    FROM pg_stat_statements
+    WHERE temp_blks_read > 0 OR temp_blks_written > 0
+    ORDER BY temp_blks_written DESC
+    LIMIT 10;
+  "
+}
+```
+
+**I/O Performance Analysis**:
+```bash
+# I/O performance analysis
+analyze_io_performance() {
+  echo "=== I/O Performance Analysis ==="
+  
+  # System I/O statistics
+  echo "--- System I/O Statistics ---"
+  iostat -x 1 3 2>/dev/null || echo "iostat not available"
+  
+  # PostgreSQL I/O statistics
+  echo "--- PostgreSQL I/O Statistics ---"
+  docker exec -it exapg-coordinator psql -U postgres -d exadb -c "
+    SELECT 
+      tablename,
+      heap_blks_read,
+      heap_blks_hit,
+      CASE 
+        WHEN heap_blks_read + heap_blks_hit > 0 
+        THEN ROUND((heap_blks_hit::float / (heap_blks_read + heap_blks_hit)) * 100, 2)
+        ELSE 0
+      END as cache_hit_ratio,
+      idx_blks_read,
+      idx_blks_hit,
+      CASE 
+        WHEN idx_blks_read + idx_blks_hit > 0
+        THEN ROUND((idx_blks_hit::float / (idx_blks_read + idx_blks_hit)) * 100, 2)
+        ELSE 0
+      END as idx_cache_hit_ratio
+    FROM pg_statio_user_tables
+    WHERE heap_blks_read + heap_blks_hit > 0
+    ORDER BY heap_blks_read + heap_blks_hit DESC
+    LIMIT 20;
+  "
+  
+  # WAL statistics
+  echo "--- WAL Statistics ---"
+  docker exec -it exapg-coordinator psql -U postgres -d exadb -c "
+    SELECT 
+      pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0')) as wal_written,
+      pg_size_pretty(pg_stat_file('pg_wal/').size) as current_wal_size;
+  "
+}
+```
+
+## Network Debugging
+
+### Network Connectivity Testing
+
+**Container Network Analysis**:
+```bash
+# Comprehensive network analysis
+analyze_network() {
+  echo "=== Network Connectivity Analysis ==="
+  
+  # Docker network information
+  echo "--- Docker Network Configuration ---"
+  docker network ls
+  docker network inspect exapg_default | jq '.[0].IPAM.Config'
+  
+  # Container IP addresses
+  echo "--- Container IP Addresses ---"
+  for container in coordinator worker1 worker2; do
+    if docker ps | grep -q "exapg-$container"; then
+      ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "exapg-$container")
+      echo "$container: $ip"
+    fi
+  done
+  
+  # Port bindings
+  echo "--- Port Bindings ---"
+  docker-compose ps --format "table {{.Name}}\t{{.Ports}}"
+  
+  # Test connectivity between containers
+  echo "--- Inter-Container Connectivity ---"
+  if docker ps | grep -q "exapg-coordinator"; then
+    docker exec exapg-coordinator bash -c "
+      for target in worker1 worker2; do
+        if nslookup \$target >/dev/null 2>&1; then
+          ping -c 2 \$target >/dev/null 2>&1 && echo \"\$target: ✓ reachable\" || echo \"\$target: ✗ unreachable\"
+        else
+          echo \"\$target: ✗ DNS resolution failed\"
+        fi
+      done
+    "
+  fi
+}
+```
+
+**Network Performance Testing**:
+```bash
+# Network performance benchmarks
+test_network_performance() {
+  echo "=== Network Performance Testing ==="
+  
+  # Latency testing
+  echo "--- Latency Testing ---"
+  docker exec exapg-coordinator bash -c "
+    for target in worker1 worker2; do
+      if nslookup \$target >/dev/null 2>&1; then
+        echo \"Testing latency to \$target:\"
+        ping -c 10 \$target | tail -1
+      fi
+    done
+  "
+  
+  # Bandwidth testing (if iperf3 is available)
+  echo "--- Bandwidth Testing ---"
+  docker exec exapg-coordinator bash -c "
+    if command -v iperf3 >/dev/null; then
+      # Start iperf3 server on worker1 if available
+      timeout 30 iperf3 -s &
+      sleep 2
+      # Test bandwidth from coordinator to worker1
+      timeout 10 iperf3 -c worker1 -t 5 2>/dev/null || echo 'iperf3 test failed'
+    else
+      echo 'iperf3 not available for bandwidth testing'
+    fi
+  "
+  
+  # PostgreSQL connection testing
+  echo "--- PostgreSQL Connection Testing ---"
+  docker exec exapg-coordinator bash -c "
+    for target in worker1 worker2; do
+      echo \"Testing PostgreSQL connection to \$target:\"
+      timeout 5 psql -h \$target -U postgres -d exadb -c 'SELECT 1;' >/dev/null 2>&1 && 
+        echo \"\$target: ✓ PostgreSQL connection successful\" || 
+        echo \"\$target: ✗ PostgreSQL connection failed\"
+    done
+  "
+}
+```
+
+**Firewall and Security Analysis**:
+```bash
+# Security and firewall analysis
+analyze_security() {
+  echo "=== Security Analysis ==="
+  
+  # Check open ports
+  echo "--- Open Ports ---"
+  netstat -tulpn | grep -E ":(5432|8080|3000|9090|9187)" || ss -tulpn | grep -E ":(5432|8080|3000|9090|9187)"
+  
+  # UFW status (if available)
+  echo "--- Firewall Status ---"
+  if command -v ufw >/dev/null; then
+    sudo ufw status verbose
+  elif command -v firewall-cmd >/dev/null; then
+    sudo firewall-cmd --list-all
+  else
+    echo "No firewall management tool detected"
+  fi
+  
+  # SSL/TLS configuration
+  echo "--- SSL/TLS Configuration ---"
+  docker exec exapg-coordinator psql -U postgres -d exadb -c "
+    SELECT name, setting 
+    FROM pg_settings 
+    WHERE name LIKE 'ssl%' OR name = 'password_encryption'
+    ORDER BY name;
+  "
+  
+  # Check pg_hba.conf security
+  echo "--- pg_hba.conf Security Analysis ---"
+  docker exec exapg-coordinator bash -c "
+    echo 'Checking for insecure authentication methods:'
+    grep -n 'trust' /var/lib/postgresql/data/pg_hba.conf | head -5
+    echo 'Checking for wide-open access:'
+    grep -n '0.0.0.0/0' /var/lib/postgresql/data/pg_hba.conf | head -5
+  "
+}
+```
+
+## Log Analysis
+
+### Centralized Log Collection
+
+**Log Aggregation Script**:
+```bash
+# Comprehensive log collection
+collect_logs() {
+  local output_dir="exapg-logs-$(date +%Y%m%d-%H%M%S)"
+  mkdir -p "$output_dir"
+  
+  echo "=== Collecting ExaPG Logs ==="
+  echo "Output directory: $output_dir"
+  
+  # Container logs
+  echo "--- Collecting Container Logs ---"
+  for service in coordinator worker1 worker2 prometheus grafana; do
+    if docker ps | grep -q "exapg-$service"; then
+      echo "Collecting logs for $service..."
+      docker logs exapg-$service --timestamps > "$output_dir/$service.log" 2>&1
+    fi
+  done
+  
+  # PostgreSQL logs from inside containers
+  echo "--- Collecting PostgreSQL Internal Logs ---"
+  docker exec exapg-coordinator bash -c "
+    if [ -d /var/log/postgresql ]; then
+      tar czf /tmp/postgresql-logs.tar.gz /var/log/postgresql/
+    fi
+  " 2>/dev/null
+  
+  if docker exec exapg-coordinator test -f /tmp/postgresql-logs.tar.gz; then
+    docker cp exapg-coordinator:/tmp/postgresql-logs.tar.gz "$output_dir/"
+  fi
+  
+  # System logs
+  echo "--- Collecting System Logs ---"
+  if command -v journalctl >/dev/null; then
+    journalctl -u docker --since "1 hour ago" > "$output_dir/docker-system.log" 2>/dev/null
+  fi
+  
+  # Configuration files
+  echo "--- Collecting Configuration Files ---"
+  if [ -f .env ]; then
+    # Sanitize passwords before copying
+    sed 's/PASSWORD=.*/PASSWORD=***REDACTED***/g' .env > "$output_dir/env-sanitized.txt"
+  fi
+  
+  if [ -f docker-compose.yml ]; then
+    cp docker-compose.yml "$output_dir/"
+  fi
+  
+  echo "--- Log Collection Summary ---"
+  ls -lh "$output_dir/"
+  echo "Logs collected in: $output_dir"
+}
+```
+
+**Log Analysis Tools**:
+```bash
+# Log analysis and pattern detection
+analyze_logs() {
+  local log_dir="${1:-./exapg-logs-*}"
+  
+  echo "=== Log Analysis Report ==="
+  
+  # Error pattern analysis
+  echo "--- Error Patterns ---"
+  for log_file in $log_dir/*.log; do
+    if [ -f "$log_file" ]; then
+      echo "Analyzing $(basename $log_file):"
+      grep -i "error\|fatal\|panic\|fail" "$log_file" | tail -10
+      echo ""
+    fi
+  done
+  
+  # Connection analysis
+  echo "--- Connection Patterns ---"
+  grep -h "connection" $log_dir/*.log | \
+    grep -v "connection authorized" | \
+    sort | uniq -c | sort -nr | head -10
+  
+  # Performance warnings
+  echo "--- Performance Warnings ---"
+  grep -h "slow\|performance\|timeout\|deadlock" $log_dir/*.log | \
+    tail -20
+  
+  # Security events
+  echo "--- Security Events ---"
+  grep -h "authentication\|authorization\|ssl\|certificate" $log_dir/*.log | \
+    tail -10
+}
+```
+
+**Real-time Log Monitoring**:
+```bash
+# Real-time log monitoring
+monitor_logs_realtime() {
+  echo "=== Real-time Log Monitoring ==="
+  echo "Press Ctrl+C to stop monitoring"
+  
+  # Monitor all container logs simultaneously
+  docker-compose logs -f --tail=10 &
+  COMPOSE_PID=$!
+  
+  # Monitor specific error patterns
+  {
+    while true; do
+      docker logs exapg-coordinator --tail=5 2>&1 | \
+        grep -i "error\|warning\|fatal" | \
+        while read line; do
+          echo "[$(date '+%H:%M:%S')] ALERT: $line"
+        done
+      sleep 5
+    done
+  } &
+  MONITOR_PID=$!
+  
+  # Cleanup on exit
+  trap "kill $COMPOSE_PID $MONITOR_PID 2>/dev/null" EXIT
+  wait
+}
+```
+
+### Performance Log Analysis
+
+**Query Performance Monitoring**:
+```bash
+# Query performance log analysis
+analyze_query_logs() {
+  echo "=== Query Performance Analysis ==="
+  
+  # Enable query logging for analysis
+  docker exec exapg-coordinator psql -U postgres -d exadb << 'EOF'
+-- Configure logging for performance analysis
+ALTER SYSTEM SET log_min_duration_statement = 1000;  -- Log queries > 1s
+ALTER SYSTEM SET log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h ';
+ALTER SYSTEM SET log_checkpoints = on;
+ALTER SYSTEM SET log_connections = on;
+ALTER SYSTEM SET log_disconnections = on;
+ALTER SYSTEM SET log_lock_waits = on;
+ALTER SYSTEM SET log_temp_files = 10240;  -- Log temp files > 10MB
 SELECT pg_reload_conf();
 
--- Check logs
-docker logs exapg-coordinator -f
-```
+-- Show current query performance
+SELECT 
+  query,
+  calls,
+  total_time,
+  mean_time,
+  stddev_time,
+  max_time,
+  min_time
+FROM pg_stat_statements
+WHERE calls > 5
+ORDER BY total_time DESC
+LIMIT 20;
+EOF
 
-### Performance Analysis
-
-```bash
-# Install pg_stat_statements
-docker exec -it exapg-coordinator psql -U postgres -c "CREATE EXTENSION pg_stat_statements;"
-
-# Top queries by time
-docker exec -it exapg-coordinator psql -U postgres -c "SELECT query, calls, total_time, mean FROM pg_stat_statements ORDER BY total_time DESC LIMIT 10;"
-```
-
-### Container Debugging
-
-```bash
-# Enter container shell
-docker exec -it exapg-coordinator bash
-
-# Check processes
-ps aux | grep postgres
-
-# Network debugging
-netstat -tulpn
-ping -c 3 worker1
+  # Analyze recent slow queries from logs
+  echo "--- Recent Slow Queries ---"
+  docker logs exapg-coordinator --since="1h" 2>&1 | \
+    grep "duration:" | \
+    sort -t: -k6 -nr | \
+    head -10
+}
 ```
 
 ## Getting Help

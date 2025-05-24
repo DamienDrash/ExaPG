@@ -1,0 +1,829 @@
+{
+    "dashboard": {
+        "id": null,
+        "title": "ExaPG Performance Dashboard",
+        "tags": [
+            "exapg",
+            "postgresql",
+            "performance"
+        ],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+            "from": "now-1h",
+            "to": "now"
+        },
+        "timepicker": {
+            "time_options": [
+                "5m",
+                "15m",
+                "1h",
+                "6h",
+                "12h",
+                "24h",
+                "2d",
+                "7d",
+                "30d"
+            ]
+        },
+        "editable": true,
+        "gnetId": null,
+        "graphTooltip": 0,
+        "hideControls": false,
+        "links": [],
+        "rows": [],
+        "schemaVersion": 21,
+        "version": 1,
+        "panels": [
+            {
+                "id": 1,
+                "title": "System Overview",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "exapg_system_cpu_usage_percent",
+                        "legendFormat": "CPU Usage",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "exapg_system_memory_usage_percent",
+                        "legendFormat": "Memory Usage",
+                        "refId": "B"
+                    },
+                    {
+                        "expr": "exapg_postgres_connections{state=\"active\"}",
+                        "legendFormat": "Active Connections",
+                        "refId": "C"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "align": "auto",
+                            "displayMode": "list"
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": null
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 70
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 85
+                                }
+                            ]
+                        },
+                        "unit": "percent"
+                    },
+                    "overrides": [
+                        {
+                            "matcher": {
+                                "id": "byName",
+                                "options": "Active Connections"
+                            },
+                            "properties": [
+                                {
+                                    "id": "unit",
+                                    "value": "short"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "gridPos": {
+                    "h": 4,
+                    "w": 24,
+                    "x": 0,
+                    "y": 0
+                },
+                "options": {
+                    "reduceOptions": {
+                        "values": false,
+                        "calcs": [
+                            "lastNotNull"
+                        ],
+                        "fields": ""
+                    },
+                    "orientation": "auto",
+                    "textMode": "auto",
+                    "colorMode": "value",
+                    "graphMode": "area",
+                    "justifyMode": "auto"
+                },
+                "pluginVersion": "8.0.0"
+            },
+            {
+                "id": 2,
+                "title": "CPU Usage Over Time",
+                "type": "timeseries",
+                "targets": [
+                    {
+                        "expr": "exapg_system_cpu_usage_percent",
+                        "legendFormat": "CPU Usage %",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "exapg_system_load_average{period=\"1m\"}",
+                        "legendFormat": "Load Average (1m)",
+                        "refId": "B"
+                    },
+                    {
+                        "expr": "exapg_system_load_average{period=\"5m\"}",
+                        "legendFormat": "Load Average (5m)",
+                        "refId": "C"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "axisLabel": "",
+                            "axisPlacement": "auto",
+                            "barAlignment": 0,
+                            "drawStyle": "line",
+                            "fillOpacity": 10,
+                            "gradientMode": "none",
+                            "hideFrom": {
+                                "legend": false,
+                                "tooltip": false,
+                                "vis": false
+                            },
+                            "lineInterpolation": "linear",
+                            "lineWidth": 1,
+                            "pointSize": 5,
+                            "scaleDistribution": {
+                                "type": "linear"
+                            },
+                            "showPoints": "never",
+                            "spanNulls": true,
+                            "stacking": {
+                                "group": "A",
+                                "mode": "none"
+                            },
+                            "thresholdsStyle": {
+                                "mode": "off"
+                            }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": null
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 80
+                                }
+                            ]
+                        },
+                        "unit": "percent"
+                    },
+                    "overrides": [
+                        {
+                            "matcher": {
+                                "id": "byRegexp",
+                                "options": "Load Average.*"
+                            },
+                            "properties": [
+                                {
+                                    "id": "unit",
+                                    "value": "short"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 4
+                },
+                "options": {
+                    "legend": {
+                        "calcs": [],
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "tooltip": {
+                        "mode": "single"
+                    }
+                },
+                "pluginVersion": "8.0.0"
+            },
+            {
+                "id": 3,
+                "title": "Memory Usage Over Time",
+                "type": "timeseries",
+                "targets": [
+                    {
+                        "expr": "exapg_system_memory_usage_percent",
+                        "legendFormat": "Memory Usage %",
+                        "refId": "A"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "axisLabel": "",
+                            "axisPlacement": "auto",
+                            "barAlignment": 0,
+                            "drawStyle": "line",
+                            "fillOpacity": 20,
+                            "gradientMode": "opacity",
+                            "hideFrom": {
+                                "legend": false,
+                                "tooltip": false,
+                                "vis": false
+                            },
+                            "lineInterpolation": "linear",
+                            "lineWidth": 2,
+                            "pointSize": 5,
+                            "scaleDistribution": {
+                                "type": "linear"
+                            },
+                            "showPoints": "never",
+                            "spanNulls": true,
+                            "stacking": {
+                                "group": "A",
+                                "mode": "none"
+                            },
+                            "thresholdsStyle": {
+                                "mode": "line"
+                            }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": null
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 70
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 85
+                                }
+                            ]
+                        },
+                        "unit": "percent",
+                        "min": 0,
+                        "max": 100
+                    }
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 4
+                },
+                "options": {
+                    "legend": {
+                        "calcs": [],
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "tooltip": {
+                        "mode": "single"
+                    }
+                },
+                "pluginVersion": "8.0.0"
+            },
+            {
+                "id": 4,
+                "title": "PostgreSQL Connections",
+                "type": "timeseries",
+                "targets": [
+                    {
+                        "expr": "exapg_postgres_connections",
+                        "legendFormat": "{{state}} connections",
+                        "refId": "A"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "axisLabel": "",
+                            "axisPlacement": "auto",
+                            "barAlignment": 0,
+                            "drawStyle": "line",
+                            "fillOpacity": 10,
+                            "gradientMode": "none",
+                            "hideFrom": {
+                                "legend": false,
+                                "tooltip": false,
+                                "vis": false
+                            },
+                            "lineInterpolation": "linear",
+                            "lineWidth": 1,
+                            "pointSize": 5,
+                            "scaleDistribution": {
+                                "type": "linear"
+                            },
+                            "showPoints": "never",
+                            "spanNulls": true,
+                            "stacking": {
+                                "group": "A",
+                                "mode": "normal"
+                            },
+                            "thresholdsStyle": {
+                                "mode": "off"
+                            }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": null
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 100
+                                }
+                            ]
+                        },
+                        "unit": "short",
+                        "min": 0
+                    }
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 12
+                },
+                "options": {
+                    "legend": {
+                        "calcs": [],
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "tooltip": {
+                        "mode": "multi"
+                    }
+                },
+                "pluginVersion": "8.0.0"
+            },
+            {
+                "id": 5,
+                "title": "PostgreSQL Transaction Rate",
+                "type": "timeseries",
+                "targets": [
+                    {
+                        "expr": "rate(exapg_postgres_transactions_total{type=\"commit\"}[5m])",
+                        "legendFormat": "Commits/sec",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "rate(exapg_postgres_transactions_total{type=\"rollback\"}[5m])",
+                        "legendFormat": "Rollbacks/sec",
+                        "refId": "B"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "axisLabel": "",
+                            "axisPlacement": "auto",
+                            "barAlignment": 0,
+                            "drawStyle": "line",
+                            "fillOpacity": 10,
+                            "gradientMode": "none",
+                            "hideFrom": {
+                                "legend": false,
+                                "tooltip": false,
+                                "vis": false
+                            },
+                            "lineInterpolation": "linear",
+                            "lineWidth": 1,
+                            "pointSize": 5,
+                            "scaleDistribution": {
+                                "type": "linear"
+                            },
+                            "showPoints": "never",
+                            "spanNulls": true,
+                            "stacking": {
+                                "group": "A",
+                                "mode": "none"
+                            },
+                            "thresholdsStyle": {
+                                "mode": "off"
+                            }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": null
+                                }
+                            ]
+                        },
+                        "unit": "ops",
+                        "min": 0
+                    }
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 12
+                },
+                "options": {
+                    "legend": {
+                        "calcs": [],
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "tooltip": {
+                        "mode": "multi"
+                    }
+                },
+                "pluginVersion": "8.0.0"
+            },
+            {
+                "id": 6,
+                "title": "PostgreSQL Cache Hit Ratio",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "exapg_postgres_cache_hit_ratio",
+                        "legendFormat": "Cache Hit Ratio",
+                        "refId": "A"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": null
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 85
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 95
+                                }
+                            ]
+                        },
+                        "unit": "percent",
+                        "min": 0,
+                        "max": 100
+                    }
+                },
+                "gridPos": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 0,
+                    "y": 20
+                },
+                "options": {
+                    "reduceOptions": {
+                        "values": false,
+                        "calcs": [
+                            "lastNotNull"
+                        ],
+                        "fields": ""
+                    },
+                    "orientation": "horizontal",
+                    "textMode": "auto",
+                    "colorMode": "background",
+                    "graphMode": "area",
+                    "justifyMode": "center"
+                },
+                "pluginVersion": "8.0.0"
+            },
+            {
+                "id": 7,
+                "title": "Query Performance",
+                "type": "table",
+                "targets": [
+                    {
+                        "expr": "topk(10, exapg_postgres_query_total_time)",
+                        "legendFormat": "{{query}}",
+                        "refId": "A"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "align": "left",
+                            "displayMode": "auto"
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": null
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 80
+                                }
+                            ]
+                        }
+                    }
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 18,
+                    "x": 6,
+                    "y": 20
+                },
+                "options": {
+                    "showHeader": true
+                },
+                "pluginVersion": "8.0.0"
+            },
+            {
+                "id": 8,
+                "title": "Benchmark Performance Trends",
+                "type": "timeseries",
+                "targets": [
+                    {
+                        "expr": "exapg_benchmark_execution_time{benchmark=\"tpch\"}",
+                        "legendFormat": "TPC-H Execution Time",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "exapg_benchmark_execution_time{benchmark=\"oltp\"}",
+                        "legendFormat": "OLTP Execution Time",
+                        "refId": "B"
+                    },
+                    {
+                        "expr": "exapg_benchmark_execution_time{benchmark=\"analytics\"}",
+                        "legendFormat": "Analytics Execution Time",
+                        "refId": "C"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "axisLabel": "",
+                            "axisPlacement": "auto",
+                            "barAlignment": 0,
+                            "drawStyle": "line",
+                            "fillOpacity": 0,
+                            "gradientMode": "none",
+                            "hideFrom": {
+                                "legend": false,
+                                "tooltip": false,
+                                "vis": false
+                            },
+                            "lineInterpolation": "linear",
+                            "lineWidth": 2,
+                            "pointSize": 5,
+                            "scaleDistribution": {
+                                "type": "linear"
+                            },
+                            "showPoints": "auto",
+                            "spanNulls": false,
+                            "stacking": {
+                                "group": "A",
+                                "mode": "none"
+                            },
+                            "thresholdsStyle": {
+                                "mode": "off"
+                            }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": null
+                                }
+                            ]
+                        },
+                        "unit": "s"
+                    }
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 24,
+                    "x": 0,
+                    "y": 28
+                },
+                "options": {
+                    "legend": {
+                        "calcs": [
+                            "lastNotNull",
+                            "max",
+                            "min"
+                        ],
+                        "displayMode": "table",
+                        "placement": "bottom"
+                    },
+                    "tooltip": {
+                        "mode": "single"
+                    }
+                },
+                "pluginVersion": "8.0.0"
+            },
+            {
+                "id": 9,
+                "title": "Disk I/O Performance",
+                "type": "timeseries",
+                "targets": [
+                    {
+                        "expr": "rate(exapg_postgres_blocks_read_total[5m])",
+                        "legendFormat": "Blocks Read/sec",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "rate(exapg_postgres_blocks_written_total[5m])",
+                        "legendFormat": "Blocks Written/sec",
+                        "refId": "B"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "axisLabel": "",
+                            "axisPlacement": "auto",
+                            "barAlignment": 0,
+                            "drawStyle": "line",
+                            "fillOpacity": 10,
+                            "gradientMode": "none",
+                            "hideFrom": {
+                                "legend": false,
+                                "tooltip": false,
+                                "vis": false
+                            },
+                            "lineInterpolation": "linear",
+                            "lineWidth": 1,
+                            "pointSize": 5,
+                            "scaleDistribution": {
+                                "type": "linear"
+                            },
+                            "showPoints": "never",
+                            "spanNulls": true,
+                            "stacking": {
+                                "group": "A",
+                                "mode": "none"
+                            },
+                            "thresholdsStyle": {
+                                "mode": "off"
+                            }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": null
+                                }
+                            ]
+                        },
+                        "unit": "ops"
+                    }
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 36
+                },
+                "options": {
+                    "legend": {
+                        "calcs": [],
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "tooltip": {
+                        "mode": "multi"
+                    }
+                },
+                "pluginVersion": "8.0.0"
+            },
+            {
+                "id": 10,
+                "title": "Lock Waits",
+                "type": "timeseries",
+                "targets": [
+                    {
+                        "expr": "exapg_postgres_lock_waits_total",
+                        "legendFormat": "{{mode}} locks",
+                        "refId": "A"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "palette-classic"
+                        },
+                        "custom": {
+                            "axisLabel": "",
+                            "axisPlacement": "auto",
+                            "barAlignment": 0,
+                            "drawStyle": "line",
+                            "fillOpacity": 10,
+                            "gradientMode": "none",
+                            "hideFrom": {
+                                "legend": false,
+                                "tooltip": false,
+                                "vis": false
+                            },
+                            "lineInterpolation": "linear",
+                            "lineWidth": 1,
+                            "pointSize": 5,
+                            "scaleDistribution": {
+                                "type": "linear"
+                            },
+                            "showPoints": "never",
+                            "spanNulls": true,
+                            "stacking": {
+                                "group": "A",
+                                "mode": "normal"
+                            },
+                            "thresholdsStyle": {
+                                "mode": "off"
+                            }
+                        },
+                        "mappings": [],
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": null
+                                }
+                            ]
+                        },
+                        "unit": "short"
+                    }
+                },
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 36
+                },
+                "options": {
+                    "legend": {
+                        "calcs": [],
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "tooltip": {
+                        "mode": "multi"
+                    }
+                },
+                "pluginVersion": "8.0.0"
+            }
+        ]
+    }
+}

@@ -1,30 +1,0 @@
-[H[2J[3J[0;34m[1m
-  ______           ____   _____ 
- |  ____|         |  _ \ / ____|
- | |__  __  ____ _| |_) | |  __ 
- |  __| \ \/ / _` |  __/| | |_ |
- | |____ >  < (_| | |   | |__| |
- |______/_/\_\__,_|_|    \_____|
-[0m
- [0;33mPostgreSQL-basierte Alternative zu Exasol[0m
- [0;36mVersion: 1.0.0[0m
-
-Hauptmenü
----------
-1) ExaPG Standard starten
-2) ExaPG Citus (verteilte Datenbank) starten
-3) ExaPG HA (Hochverfügbarkeit) starten
-4) Monitoring starten
-5) Management-UI starten
-6) UDF-Framework starten (LuaJIT, Python, R)
-7) Virtual Schemas starten (Foreign Data Wrapper)
-8) ETL-Tools starten
-9) Backup-Tools starten
-
-s) Status aller Komponenten anzeigen
-e) Konfigurationseinstellungen bearbeiten (.env)
-x) Alle Komponenten stoppen
-u) Modernes UI starten (Dialog/Whiptail)
-q) Beenden
-
-[?1049h[22;0;0t[1;24r(B[m[4l[?7h[?1h=[?1006;1000h[39;49m[?1h=[?1h=[39;49m(B[m[H[2J[23d(B[0;1m[37m[44m[J[H ExaPG - PostgreSQL-basierte Alternative zu Exasol v1.0[K[2d (0[0;1m[37m[44mqqq[37m[47mlqqqqqqqqqqqqqqqqqqqqqqqqqq(B[0;1m[34m[47m[ Hauptmenü ](0[0;1m[37m[47mqqqqqqqqqqqqqqqqqqqqqqqqqqqqqk[37m[44mqqqqq(B[0;1m[37m[44m[K[3d    (0[0;1m[37m[47mx(B[0m[30m[47m Wählen Sie eine Option:[44X[74G(0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[4d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mlqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqk(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[5d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            (B[0;1m[31m[44m1(B[0m[30m[47m  (B[0;1m[37m[44mExaPG Standard starten/konfigurieren(B[0m[30m[47m             (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[6d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            [31m[47m2[30m[47m  ExaPG Citus (verteilte Datenbank)[16X[6;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[7d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            [31m[47m3[30m[47m  ExaPG HA (Hochverfügbarkeit)[21X[7;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[8d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            [31m[47m4[30m[47m  Monitoring Dashboard[29X[8;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[9d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            [31m[47m5[30m[47m  Management UI[36X[9;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[10d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            [31m[47m6[30m[47m  UDF-Framework (Lua/Python/R)[21X[10;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[11d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            [31m[47m7[30m[47m  Virtual Schemas (FDW)[28X[11;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[12d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            [31m[47m8[30m[47m  ETL-Tools[40X[12;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[13d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            [31m[47m9[30m[47m  Backup & Recovery[32X[13;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[14d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            [31m[47mS[30m[47m  System Status[36X[14;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[15d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            [31m[47mC[30m[47m  Konfiguration[36X[15;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[16d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0m[30m[47m            [31m[47mI[30m[47m  Installation/Setup[31X[16;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[17d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[37m[47m[64X[17;72H(0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[18d    (0[0;1m[37m[47mx(B[0m[30m[47m (0[0;1m[37m[47mmqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqj(B[0m[30m[47m (0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[19d    (0[0;1m[37m[47mtqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqu(B[0;1m[30m[40m  [37m[44m[K[20d    (0[0;1m[37m[47mx(B[0m[30m[47m[68X[74G(0[0;1m[37m[47mx(B[0;1m[30m[40m  [37m[44m[K[21d    (0[0;1m[37m[47mmqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqj(B[0;1m[30m[40m  [37m[44m[K[22;6H[1K [30m[40m[70X[77G[37m[44m[K[18;73H[39;49m(B[m[20;25H(B[0;1m[37m[44m<[33m[44m  OK   [37m[44m>[20;44H(B[0m[30m[47m<(B[0;1m[30m[47mBeenden(B[0m[30m[47m>[18;73H[39;49m(B[m[5;20H[?1006;1000l[24;1H[?1049l[23;0;0t[?1l>

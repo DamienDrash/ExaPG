@@ -1,0 +1,351 @@
+# ===================================================================
+# ExaPG Docker Compose Security Configuration
+# ===================================================================
+# DOCKER FIXES: DOCK-001 Security Hardening - Maximum Security Mode
+# Date: 2024-05-24
+#
+# Usage: 
+#   docker-compose -f docker-compose.yml -f docker-compose.security.yml up
+# ===================================================================
+
+version: '3.8'
+
+services:
+  # ===================================================================
+  # SECURITY-HARDENED COORDINATOR
+  # ===================================================================
+  coordinator:
+    # Security: Read-only root filesystem
+    read_only: true
+
+    # Security: Temporary filesystem for writable areas
+    tmpfs:
+      - /tmp:size=100M,mode=1777,uid=999,gid=999,noexec,nosuid,nodev
+      - /var/run/postgresql:size=50M,mode=0755,uid=999,gid=999,noexec,nosuid,nodev
+      - /var/log:size=200M,mode=0755,uid=999,gid=999,noexec,nosuid,nodev
+
+    # Security: Linux capabilities (drop all, add only necessary)
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID # Required for gosu
+      - SETGID # Required for gosu
+      - DAC_OVERRIDE # Required for file permissions
+
+    # Security: User namespace and non-root
+    user: "999:999" # postgres:postgres from Dockerfile
+
+    # Security: Linux security options
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:unconfined # May need adjustment based on requirements
+      - apparmor:docker-default
+
+    # Security: System call restrictions
+    sysctls:
+      net.core.somaxconn: 1024
+      kernel.shm_rmid_forced: 1
+
+    # Security: Container labels
+    labels:
+      - "security.hardened=true"
+      - "security.read-only=true"
+      - "security.non-root=true"
+      - "security.capabilities-dropped=true"
+
+    # Security: Environment variable restrictions
+    environment:
+      # Remove or override insecure defaults
+      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_INITDB_ARGS: "--data-checksums --locale=en_US.UTF-8"
+
+      # Security hardening options
+      POSTGRES_LOG_STATEMENT: mod
+      POSTGRES_LOG_MIN_DURATION_STATEMENT: 1000
+      POSTGRES_LOG_CONNECTIONS: "on"
+      POSTGRES_LOG_DISCONNECTIONS: "on"
+      POSTGRES_LOG_HOSTNAME: "on"
+
+      # Disable potentially dangerous features
+      POSTGRES_ENABLE_DEBUG: "false"
+      POSTGRES_ENABLE_ASSERT: "false"
+
+    # Security: Resource limits (prevent DoS)
+    deploy:
+      resources:
+        limits:
+          memory: ${COORDINATOR_MEMORY_LIMIT:-8G}
+          cpus: '${COORDINATOR_CPU_LIMIT:-4.0}'
+          pids: 512 # Limit process count
+        reservations:
+          memory: ${COORDINATOR_MEMORY_RESERVATION:-4G}
+          cpus: '${COORDINATOR_CPU_RESERVATION:-2.0}'
+
+    # Security: Network isolation
+    networks:
+      exapg-network:
+        aliases:
+          - coordinator.internal
+
+    # Security: Volume mounts with strict permissions
+    volumes:
+      - coordinator_data:/var/lib/postgresql/data:rw,Z
+      - coordinator_logs:/var/log/postgresql:rw,Z
+      - type: bind
+        source: ${PWD}/config/ssl
+        target: /etc/ssl/certs
+        read_only: true
+      - type: bind
+        source: ${PWD}/config/postgresql
+        target: /etc/postgresql
+        read_only: true
+
+    # Security: Enhanced healthcheck
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-exadb} -h localhost || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # ===================================================================
+  # SECURITY-HARDENED WORKERS
+  # ===================================================================
+  worker1:
+    profiles:
+      - cluster
+
+    # Apply same security hardening as coordinator
+    read_only: true
+
+    tmpfs:
+      - /tmp:size=100M,mode=1777,uid=999,gid=999,noexec,nosuid,nodev
+      - /var/run/postgresql:size=50M,mode=0755,uid=999,gid=999,noexec,nosuid,nodev
+      - /var/log:size=200M,mode=0755,uid=999,gid=999,noexec,nosuid,nodev
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+
+    user: "999:999"
+
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:unconfined
+      - apparmor:docker-default
+
+    labels:
+      - "security.hardened=true"
+      - "security.read-only=true"
+      - "security.non-root=true"
+      - "security.capabilities-dropped=true"
+
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_INITDB_ARGS: "--data-checksums --locale=en_US.UTF-8"
+      POSTGRES_LOG_STATEMENT: mod
+      POSTGRES_LOG_MIN_DURATION_STATEMENT: 2000
+      POSTGRES_LOG_CONNECTIONS: "on"
+      POSTGRES_LOG_DISCONNECTIONS: "on"
+
+    deploy:
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT:-6G}
+          cpus: '${WORKER_CPU_LIMIT:-3.0}'
+          pids: 256
+
+    networks:
+      exapg-network:
+        aliases:
+          - worker1.internal
+
+  worker2:
+    profiles:
+      - cluster
+
+    # Same security configuration as worker1
+    read_only: true
+
+    tmpfs:
+      - /tmp:size=100M,mode=1777,uid=999,gid=999,noexec,nosuid,nodev
+      - /var/run/postgresql:size=50M,mode=0755,uid=999,gid=999,noexec,nosuid,nodev
+      - /var/log:size=200M,mode=0755,uid=999,gid=999,noexec,nosuid,nodev
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+
+    user: "999:999"
+
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:unconfined
+      - apparmor:docker-default
+
+    labels:
+      - "security.hardened=true"
+      - "security.read-only=true"
+      - "security.non-root=true"
+      - "security.capabilities-dropped=true"
+
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: md5
+      POSTGRES_INITDB_ARGS: "--data-checksums --locale=en_US.UTF-8"
+      POSTGRES_LOG_STATEMENT: mod
+      POSTGRES_LOG_MIN_DURATION_STATEMENT: 2000
+      POSTGRES_LOG_CONNECTIONS: "on"
+      POSTGRES_LOG_DISCONNECTIONS: "on"
+
+    deploy:
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT:-6G}
+          cpus: '${WORKER_CPU_LIMIT:-3.0}'
+          pids: 256
+
+    networks:
+      exapg-network:
+        aliases:
+          - worker2.internal
+
+  # ===================================================================
+  # SECURITY-HARDENED MONITORING (Optional)
+  # ===================================================================
+  prometheus:
+    profiles:
+      - monitoring
+      - security
+
+    # Security hardening for monitoring
+    read_only: true
+
+    tmpfs:
+      - /tmp:size=50M,mode=1777,noexec,nosuid,nodev
+
+    cap_drop:
+      - ALL
+
+    user: "65534:65534" # nobody:nobody
+
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:unconfined
+
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+          pids: 100
+
+    networks:
+      exapg-network:
+        aliases:
+          - prometheus.internal
+
+  grafana:
+    profiles:
+      - monitoring
+      - security
+
+    # Security hardening for Grafana
+    read_only: true
+
+    tmpfs:
+      - /tmp:size=50M,mode=1777,noexec,nosuid,nodev
+      - /var/lib/grafana:size=200M,mode=0755,uid=472,gid=0,noexec,nosuid,nodev
+
+    cap_drop:
+      - ALL
+
+    user: "472:0" # grafana user
+
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:unconfined
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+          pids: 50
+
+    networks:
+      exapg-network:
+        aliases:
+          - grafana.internal
+
+# ===================================================================
+# SECURE NETWORKING
+# ===================================================================
+networks:
+  exapg-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false" # Disable inter-container communication by default
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1" # Bind only to localhost
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    labels:
+      - "security.isolated=true"
+      - "security.local-only=true"
+
+# ===================================================================
+# SECURE VOLUMES
+# ===================================================================
+volumes:
+  coordinator_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind,uid=999,gid=999,mode=0700
+      device: ${PWD}/data/coordinator
+    labels:
+      - "security.encrypted=false"
+      - "security.permissions=0700"
+
+  coordinator_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind,uid=999,gid=999,mode=0755
+      device: ${PWD}/logs/coordinator
+    labels:
+      - "security.permissions=0755"
+
+# ===================================================================
+# SECURITY USAGE NOTES:
+# ===================================================================
+# This configuration provides maximum security with:
+#
+# ✓ Read-only root filesystem
+# ✓ Dropped Linux capabilities
+# ✓ Non-root user execution
+# ✓ Resource limits (DoS protection)
+# ✓ Network isolation
+# ✓ Secure volume mounts
+# ✓ Enhanced logging
+# ✓ Process limits
+#
+# Usage Examples:
+#
+# Maximum Security Mode:
+#   docker-compose -f docker-compose.yml -f docker-compose.security.yml up
+#
+# Security + Monitoring:
+#   docker-compose -f docker-compose.yml -f docker-compose.security.yml up --profile monitoring
+#
+# Security + Cluster:
+#   docker-compose -f docker-compose.yml -f docker-compose.security.yml up --profile cluster
+# =================================================================== 

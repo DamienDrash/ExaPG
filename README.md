@@ -28,31 +28,43 @@
 - Columnar storage with Citus Columnar for 8x compression
 - JIT compilation for complex queries
 - Parallel query processing with optimized worker configuration
+- SCRAM-SHA-256 authentication for enterprise security
 
 **📈 Horizontal Scalability**  
 - Distributed processing with Citus (1 coordinator + multiple workers)
 - Automatic data distribution and query parallelization
 - Dynamic cluster scaling with rolling updates
+- Kubernetes-native deployment with StatefulSets
 
 **🔗 Comprehensive Data Integration**
 - Foreign Data Wrappers for PostgreSQL, MySQL, MongoDB, SQL Server, Redis
 - ETL automation with pgAgent
 - Time-series analytics with TimescaleDB
+- Disaster recovery with pgBackRest and automated validation
 
 **🎯 Advanced Analytics Extensions**
 - Geospatial analysis with PostGIS
 - Vector similarity search with pgvector  
 - Machine learning and AI workload support
+- Multi-language support (English, German) in CLI
 
 **📊 Enterprise Monitoring**
 - Real-time metrics with Prometheus
 - Pre-built Grafana dashboards
 - Automated alerting and notifications
+- Comprehensive health checks and status monitoring
 
 **🔧 Enterprise Management**
 - Web-based cluster management UI
 - Automated backup with pgBackRest
 - High availability with automatic failover
+- 175+ automated tests with CI/CD integration
+
+**☁️ Cloud Native**
+- Complete Kubernetes integration (10+ manifests)
+- Multi-environment support (dev/staging/prod)
+- GitOps ready with ArgoCD/Flux support
+- SSL/TLS encryption throughout
 
 ## Quick Start
 
@@ -65,34 +77,47 @@ cd ExaPG
 ./exapg
 ```
 
+**For Kubernetes deployment:**
+```bash
+# Deploy to Kubernetes
+cd k8s
+./deploy.sh prod --all
+
+# Access services
+kubectl port-forward -n exapg svc/exapg-coordinator 5432:5432
+```
+
 **Connect to Database:**
 ```bash
 docker exec -it exapg-coordinator psql -U postgres -d exadb
+# Or for Kubernetes:
+kubectl exec -it -n exapg exapg-coordinator-0 -- psql -U postgres -d exadb
 ```
 
 **Access Web Interfaces:**
 - Cluster Management: http://localhost:8080
 - Grafana Monitoring: http://localhost:3000 (admin/exapg_admin)
 - Prometheus: http://localhost:9090
+- Kubernetes: http://exapg.local (with ingress configured)
 
 ## Architecture
 
 ExaPG provides flexible deployment architectures:
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌────────────────────┐
-│   Single-Node   │    │    Cluster      │    │  High-Availability │
-│                 │    │                 │    │                    │
-│ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌────────────────┐ │
-│ │ PostgreSQL  │ │    │ │ Coordinator │ │    │ │Primary+Standby │ │
-│ │   + Citus   │ │    │ │             │ │    │ │   + Patroni    │ │
-│ │+TimescaleDB │ │    │ └─────────────┘ │    │ │   + pgBouncer  │ │
-│ │  + PostGIS  │ │    │ ┌─────────────┐ │    │ └────────────────┘ │
-│ │ + pgvector  │ │    │ │  Worker 1   │ │    │ ┌────────────────┐ │
-│ └─────────────┘ │    │ │  Worker 2   │ │    │ │   Monitoring   │ │
-└─────────────────┘    │ │  Worker N   │ │    │ │ Stack + Alerts │ │
-                       │ └─────────────┘ │    │ └────────────────┘ │
-                       └─────────────────┘    └────────────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌────────────────────┐    ┌─────────────────┐
+│   Single-Node   │    │    Cluster      │    │  High-Availability │    │   Kubernetes    │
+│                 │    │                 │    │                    │    │                 │
+│ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌────────────────┐ │    │ ┌─────────────┐ │
+│ │ PostgreSQL  │ │    │ │ Coordinator │ │    │ │Primary+Standby │ │    │ │ StatefulSet │ │
+│ │   + Citus   │ │    │ │             │ │    │ │   + Patroni    │ │    │ │+ Monitoring │ │
+│ │+TimescaleDB │ │    │ └─────────────┘ │    │ │   + pgBouncer  │ │    │ │+ Management │ │
+│ │  + PostGIS  │ │    │ ┌─────────────┐ │    │ └────────────────┘ │    │ └─────────────┘ │
+│ │ + pgvector  │ │    │ │  Worker 1   │ │    │ ┌────────────────┐ │    │ ┌─────────────┐ │
+│ └─────────────┘ │    │ │  Worker 2   │ │    │ │   Monitoring   │ │    │ │   Ingress   │ │
+└─────────────────┘    │ │  Worker N   │ │    │ │ Stack + Alerts │ │    │ │  + GitOps   │ │
+                       │ └─────────────┘ │    │ └────────────────┘ │    │ └─────────────┘ │
+                       └─────────────────┘    └────────────────────┘    └─────────────────┘
 ```
 
 **Core Components:**
@@ -102,6 +127,7 @@ ExaPG provides flexible deployment architectures:
 - **PostGIS**: Geospatial data processing
 - **pgvector**: Vector similarity search for ML workloads
 - **Prometheus/Grafana**: Comprehensive monitoring and alerting
+- **Kubernetes**: Cloud-native orchestration with auto-scaling
 
 ## Installation
 
@@ -275,6 +301,19 @@ Enterprise deployment with automatic failover:
 - Load balancing with pgBouncer
 - Zero-downtime maintenance
 
+### Kubernetes Mode
+
+Kubernetes-native deployment with StatefulSets:
+
+```bash
+./exapg
+# Select option 4: ExaPG Kubernetes
+```
+
+- Auto-scaling and rolling updates
+- Comprehensive monitoring and alerting
+- GitOps ready with ArgoCD/Flux support
+
 ## Performance Testing
 
 ### Built-in Test Suite
@@ -393,24 +432,39 @@ Automated alerts for:
 
 ## Roadmap
 
-### Current Development (2024)
-- ✅ Enterprise Benchmark Suite (v2.0.0)
-- ✅ Professional CLI Interface
-- ✅ Complete Documentation in English
-- 🔄 CI/CD Pipeline Integration
-- 🔄 Automated Testing Framework
+### Recently Completed (v3.0.0 - December 2024)
+- ✅ Kubernetes Integration with StatefulSets
+- ✅ Enterprise Security (SCRAM-SHA-256, SSL/TLS)
+- ✅ Comprehensive Testing Framework (175+ tests)
+- ✅ Configuration Management (67 unified variables)
+- ✅ Multi-language CLI Support
+- ✅ Professional API Documentation
+
+### Current Development (2024-2025)
+- 🔄 Connection Pooling with PgBouncer
+- 🔄 CloudNativePG Operator Integration
+- 🔄 Service Mesh Support (Istio/Linkerd)
+- 🔄 Advanced Health Checks
 
 ### Future Plans
 
-**Phase 7: Enterprise Features (Q3-Q4 2024)**
-- Advanced Security (RBAC, encryption, LDAP/SAML)
-- Cloud Integration (AWS, Azure, GCP, Kubernetes)
-- Advanced Analytics (ML deployment, streaming, graph DB)
+**Phase 8: Cloud Native Excellence (Q1-Q2 2025)**
+- Vertical Pod Autoscaler (VPA) integration
+- Multi-region deployment support
+- Advanced GitOps workflows
+- Cost optimization features
 
-**Phase 8: Performance & Scale (2025)**
-- Next-Generation Storage (native columnar engine)
-- Distributed Computing (multi-region, federation)
-- AI-Powered Optimization (auto-tuning, predictive scaling)
+**Phase 9: Advanced Analytics (Q3-Q4 2025)**
+- Native columnar storage engine
+- Real-time streaming analytics
+- Graph database integration
+- Advanced ML model deployment
+
+**Phase 10: Enterprise Platform (2026)**
+- Multi-cloud federation
+- AI-powered query optimization
+- Automated performance tuning
+- Enterprise marketplace
 
 For detailed roadmap, see [GitHub Issues](https://github.com/DamienDrash/ExaPG/issues).
 

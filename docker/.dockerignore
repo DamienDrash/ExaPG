@@ -1,0 +1,222 @@
+# ===================================================================
+# ExaPG Docker Build Ignore File
+# ===================================================================
+# DOCKER FIXES: DOCK-001 & DOCK-002 - Security and Performance
+# Date: 2024-05-24
+# ===================================================================
+
+# ===================================================================
+# SECURITY: Exclude sensitive files
+# ===================================================================
+
+# Environment and configuration files
+.env
+.env.*
+!.env.template
+.env.local
+.env.production
+.env.development
+
+# SSH and SSL keys
+*.key
+*.pem
+*.p12
+*.pfx
+**/ssl/private/
+**/.ssh/
+**/.gnupg/
+
+# Passwords and secrets
+**/secrets/
+**/*password*
+**/*secret*
+**/*token*
+
+# Git and version control
+.git
+.gitignore
+.gitattributes
+.github/
+
+# ===================================================================
+# PERFORMANCE: Exclude unnecessary files
+# ===================================================================
+
+# Documentation and markdown
+README*.md
+CHANGELOG*.md
+LICENSE*
+CONTRIBUTING.md
+*.md
+docs/
+*.txt
+*.rst
+
+# Development and testing
+tests/
+test/
+spec/
+*.test.*
+*.spec.*
+**/__tests__/
+**/__mocks__/
+.coverage
+coverage/
+htmlcov/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+logs/
+*.log
+*.log.*
+tmp/
+temp/
+.tmp/
+cache/
+.cache/
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+
+# ===================================================================
+# DOCKER: Exclude Docker-related files
+# ===================================================================
+
+# Docker files and containers
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+*.dockerfile
+
+# Build artifacts
+.docker/
+docker-build/
+*.tar
+*.tar.gz
+
+# ===================================================================
+# DATABASE: Exclude data files
+# ===================================================================
+
+# Database data and backups
+data/
+pgdata/
+*.sql.gz
+*.dump
+*.backup
+**/postgresql/data/
+backup/
+backups/
+
+# Performance test results
+performance_results.*
+benchmark/results/
+*.benchmark
+
+# ===================================================================
+# MONITORING: Exclude monitoring data
+# ===================================================================
+
+# Monitoring and metrics
+monitoring/data/
+grafana/data/
+prometheus/data/
+alertmanager/data/
+
+# ===================================================================
+# EXCLUDE EVERYTHING BUT NECESSARY FILES
+# ===================================================================
+
+# Include only what's needed for the build
+!scripts/init/
+!scripts/cluster-management/
+!config/postgresql/
+
+# Exclude everything else in scripts/ except what we need
+scripts/*
+!scripts/init/
+!scripts/cluster-management/
+
+# Exclude config subdirectories except postgresql
+config/*
+!config/postgresql/
+
+# Exclude all other directories
+benchmark/
+docs/
+management-ui/
+monitoring/
+pgbackrest/
+sql/
+
+# ===================================================================
+# CONDITIONAL EXCLUDES
+# ===================================================================
+
+# Exclude if present
+.vagrant/
+Vagrantfile*
+**/Dockerfile.dev
+**/docker-compose.dev.yml
+**/docker-compose.test.yml
+
+# Exclude CI/CD files
+.travis.yml
+.gitlab-ci.yml
+.circleci/
+.github/workflows/
+Jenkinsfile
+azure-pipelines.yml
+
+# ===================================================================
+# NOTES:
+# ===================================================================
+# This .dockerignore file ensures:
+# 1. No sensitive data enters the Docker build context
+# 2. Build performance is optimized by excluding unnecessary files
+# 3. Final image size is minimized
+# 4. Security is enhanced by excluding development files
+# =================================================================== 

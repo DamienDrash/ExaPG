@@ -1,0 +1,383 @@
+---
+# Main ExaPG Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: exapg-ingress
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: exapg-platform
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - exapg.local
+    - grafana.exapg.local
+    - pgadmin.exapg.local
+    - prometheus.exapg.local
+    - alertmanager.exapg.local
+    secretName: exapg-tls-secret
+  rules:
+  # Main ExaPG Management UI
+  - host: exapg.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: exapg-management-ui
+            port:
+              number: 80
+      # Backup Management UI
+      - path: /backup
+        pathType: Prefix
+        backend:
+          service:
+            name: exapg-backup-ui
+            port:
+              number: 80
+      # File Browser
+      - path: /files
+        pathType: Prefix
+        backend:
+          service:
+            name: exapg-filebrowser
+            port:
+              number: 80
+      # Adminer (lightweight DB admin)
+      - path: /adminer
+        pathType: Prefix
+        backend:
+          service:
+            name: exapg-adminer
+            port:
+              number: 8080
+      # Citus Health Monitor
+      - path: /citus-health
+        pathType: Prefix
+        backend:
+          service:
+            name: exapg-citus-health
+            port:
+              number: 8080
+
+  # Grafana Monitoring Dashboard
+  - host: grafana.exapg.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: exapg-grafana
+            port:
+              number: 3000
+
+  # pgAdmin Database Administration
+  - host: pgadmin.exapg.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: exapg-pgadmin
+            port:
+              number: 80
+
+  # Prometheus Metrics
+  - host: prometheus.exapg.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: exapg-prometheus
+            port:
+              number: 9090
+
+  # Alertmanager
+  - host: alertmanager.exapg.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: exapg-alertmanager
+            port:
+              number: 9093
+
+---
+# Database Access Ingress (TCP)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: exapg-database-ingress
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: database-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/tcp-services-configmap: "exapg/tcp-services"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - db.exapg.local
+    secretName: exapg-db-tls-secret
+  rules:
+  - host: db.exapg.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: exapg-coordinator
+            port:
+              number: 5432
+
+---
+# TCP Services ConfigMap for PostgreSQL
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tcp-services
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: tcp-services
+data:
+  # PostgreSQL Coordinator
+  5432: "exapg/exapg-coordinator:5432"
+  # PostgreSQL Worker 1 (for direct access if needed)
+  5433: "exapg/exapg-worker1:5432"
+  # PostgreSQL Worker 2 (for direct access if needed)
+  5434: "exapg/exapg-worker2:5432"
+
+---
+# Network Policy for ExaPG
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: exapg-network-policy
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from nginx-ingress
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+  # Allow internal cluster communication
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: exapg
+  # Allow monitoring from prometheus
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9187
+    - protocol: TCP
+      port: 9100
+    - protocol: TCP
+      port: 8080
+  egress:
+  # Allow all egress (can be restricted further)
+  - {}
+
+---
+# Service Monitor for Prometheus Operator (if using)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: exapg-postgres-exporter
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: postgres-exporter
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exapg
+      app.kubernetes.io/component: postgres-exporter
+  endpoints:
+  - port: http-metrics
+    interval: 30s
+    path: /metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: exapg-node-exporter
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exapg
+      app.kubernetes.io/component: node-exporter
+  endpoints:
+  - port: http-metrics
+    interval: 30s
+    path: /metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: exapg-citus-health
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: citus-health
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exapg
+      app.kubernetes.io/component: citus-health
+  endpoints:
+  - port: http-metrics
+    interval: 30s
+    path: /metrics
+
+---
+# HorizontalPodAutoscaler for Management UI
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: exapg-management-ui-hpa
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: management-ui-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: exapg-management-ui
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# HorizontalPodAutoscaler for Grafana
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: exapg-grafana-hpa
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: grafana-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: exapg-grafana
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# PodDisruptionBudget for PostgreSQL Coordinator
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: exapg-coordinator-pdb
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: coordinator-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exapg
+      app.kubernetes.io/component: coordinator
+
+---
+# PodDisruptionBudget for PostgreSQL Workers
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: exapg-workers-pdb
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: workers-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exapg
+      app.kubernetes.io/component: worker
+
+---
+# PodDisruptionBudget for Monitoring Stack
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: exapg-monitoring-pdb
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: monitoring-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: exapg-monitoring 

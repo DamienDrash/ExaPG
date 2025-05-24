@@ -1,101 +1,362 @@
 version: '3.8'
 
 services:
+  # pgBackRest Service Container
   pgbackrest:
-    image: exapg/pgbackrest:latest
-    container_name: exapg-pgbackrest
     build:
-      context: ../
-      dockerfile: Dockerfile.pgbackrest
-    volumes:
-      - ../../pgbackrest/conf:/etc/pgbackrest
-      - pgbackrest_data:/var/lib/pgbackrest
-      - pgbackrest_spool:/var/spool/pgbackrest
-      - pgbackrest_logs:/var/log/pgbackrest
+      context: ../..
+      dockerfile: docker/Dockerfile.pgbackrest
+    container_name: ${COMPOSE_PROJECT_NAME}_pgbackrest
+    hostname: pgbackrest
+    restart: unless-stopped
+    
     environment:
+      # pgBackRest Configuration
+      - PGBACKREST_STANZA=${PGBACKREST_STANZA:-exapg}
+      - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
       - PGBACKREST_REPO1_PATH=/var/lib/pgbackrest
-      - PGBACKREST_STANZA=exapg
-      - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
-      - PGHOST=${PGHOST:-localhost}
-      - PGPORT=${PGPORT:-5432}
-      - PGDATABASE=${PGDATABASE:-postgres}
-      - PGUSER=${PGUSER:-postgres}
-      - PGPASSWORD=${PGPASSWORD:-postgres}
-    networks:
-      - exapg-backup-network
-    restart: always
-
-  # Automatisierte Backup-Verifizierung
-  backup-verifier:
-    image: exapg/backup-verifier:latest
-    container_name: exapg-backup-verifier
-    build:
-      context: ../
-      dockerfile: Dockerfile.backup-verifier
+      - PGBACKREST_REPO1_RETENTION_FULL=${BACKUP_RETENTION_FULL:-3}
+      - PGBACKREST_REPO1_RETENTION_DIFF=${BACKUP_RETENTION_DIFF:-14}
+      - PGBACKREST_REPO1_RETENTION_ARCHIVE=${BACKUP_RETENTION_ARCHIVE:-14}
+      
+      # PostgreSQL Connection
+      - PGHOST=${POSTGRES_HOST:-coordinator}
+      - PGPORT=${POSTGRES_PORT:-5432}
+      - PGUSER=${POSTGRES_USER:-postgres}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB:-exadb}
+      
+      # Backup Configuration
+      - BACKUP_SCHEDULE_ENABLED=${BACKUP_SCHEDULE_ENABLED:-true}
+      - BACKUP_PARALLEL_PROCESSES=${BACKUP_PARALLEL_PROCESSES:-4}
+      - BACKUP_COMPRESSION_LEVEL=${BACKUP_COMPRESSION_LEVEL:-3}
+      - BACKUP_VERIFICATION_ENABLED=${BACKUP_VERIFICATION_ENABLED:-true}
+      
+      # Notification Configuration
+      - BACKUP_NOTIFICATIONS_ENABLED=${BACKUP_NOTIFICATIONS_ENABLED:-true}
+      - BACKUP_EMAIL_ENABLED=${BACKUP_EMAIL_ENABLED:-false}
+      - BACKUP_SLACK_ENABLED=${BACKUP_SLACK_ENABLED:-false}
+      - BACKUP_WEBHOOK_ENABLED=${BACKUP_WEBHOOK_ENABLED:-false}
+      
+      # Email Settings (if enabled)
+      - BACKUP_SMTP_SERVER=${BACKUP_SMTP_SERVER:-localhost}
+      - BACKUP_SMTP_PORT=${BACKUP_SMTP_PORT:-587}
+      - BACKUP_SMTP_USERNAME=${BACKUP_SMTP_USERNAME}
+      - BACKUP_SMTP_PASSWORD=${BACKUP_SMTP_PASSWORD}
+      - BACKUP_SMTP_USE_TLS=${BACKUP_SMTP_USE_TLS:-true}
+      - BACKUP_EMAIL_FROM=${BACKUP_EMAIL_FROM:-exapg@localhost}
+      - BACKUP_EMAIL_TO=${BACKUP_EMAIL_TO}
+      
+      # Slack Settings (if enabled)
+      - BACKUP_SLACK_WEBHOOK_URL=${BACKUP_SLACK_WEBHOOK_URL}
+      - BACKUP_SLACK_CHANNEL=${BACKUP_SLACK_CHANNEL:-#exapg-alerts}
+      
+      # Webhook Settings (if enabled)
+      - BACKUP_WEBHOOK_URL=${BACKUP_WEBHOOK_URL}
+      - BACKUP_WEBHOOK_TOKEN=${BACKUP_WEBHOOK_TOKEN}
+      
+      # System Settings
+      - HOSTNAME=pgbackrest-${ENVIRONMENT:-production}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - TZ=${TIMEZONE:-UTC}
+    
     volumes:
-      - ../../scripts/maintenance:/app/scripts
-      - ../../pgbackrest/conf:/etc/pgbackrest
-      - pgbackrest_data:/var/lib/pgbackrest:ro
-      - pgbackrest_logs:/var/log/pgbackrest
-      - backup_verification_logs:/var/log/backup-verification
-    environment:
-      - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
-      - PGBACKREST_STANZA=exapg
-      - VERIFICATION_INTERVAL=86400 # Tägliche Überprüfung
-      - SLACK_WEBHOOK_URL= # Optional für Benachrichtigungen
-      - EMAIL_NOTIFICATIONS= # Optional für E-Mail
-      - PGHOST=${PGHOST:-localhost}
-      - PGPORT=${PGPORT:-5432}
-      - PGDATABASE=${PGDATABASE:-postgres}
-      - PGUSER=${PGUSER:-postgres}
-      - PGPASSWORD=${PGPASSWORD:-postgres}
-    restart: always
-    depends_on:
-      - pgbackrest
-    networks:
-      - exapg-backup-network
-
-  # Point-in-Time Recovery UI
-  pitr-manager:
-    image: exapg/pitr-manager:latest
-    container_name: exapg-pitr-manager
-    build:
-      context: ../
-      dockerfile: Dockerfile.pitr-manager
-    ports:
-      - "8081:8080"
-    volumes:
-      - ../../scripts/maintenance:/app/scripts
+      # pgBackRest Repository
+      - pgbackrest_repo:/var/lib/pgbackrest
+      - pgbackrest_spool:/var/spool/pgbackrest
+      
+      # Configuration
       - ../../pgbackrest/conf:/etc/pgbackrest:ro
-      - pgbackrest_logs:/var/log/pgbackrest:ro
-      - pitr_data:/var/lib/pitr-manager
+      - ../../pgbackrest/scripts:/usr/local/bin:ro
+      
+      # Logs
+      - pgbackrest_logs:/var/log/pgbackrest
+      
+      # SSH for remote backups (if needed)
+      - pgbackrest_ssh:/root/.ssh:ro
+    
+    networks:
+      - exapg_network
+    
+    depends_on:
+      coordinator:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "pgbackrest", "--stanza=${PGBACKREST_STANZA:-exapg}", "check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    command: ["crond", "-f", "-l", "8"]
+    
+    labels:
+      - "com.exapg.service=backup"
+      - "com.exapg.component=pgbackrest"
+      - "com.exapg.monitor=true"
+
+  # Backup Monitoring Dashboard
+  backup-dashboard:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.backup-dashboard
+    container_name: ${COMPOSE_PROJECT_NAME}_backup_dashboard
+    hostname: backup-dashboard
+    restart: unless-stopped
+    
     environment:
+      # Dashboard Configuration
+      - BACKUP_DASHBOARD_PORT=${BACKUP_DASHBOARD_PORT:-8080}
+      - BACKUP_DASHBOARD_REFRESH=${BACKUP_DASHBOARD_REFRESH:-300}
+      
+      # pgBackRest Connection
+      - PGBACKREST_STANZA=${PGBACKREST_STANZA:-exapg}
       - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
-      - PGBACKREST_STANZA=exapg
-      - PGHOST=${PGHOST:-localhost}
-      - PGPORT=${PGPORT:-5432}
-      - PGDATABASE=${PGDATABASE:-postgres}
-      - PGUSER=${PGUSER:-postgres}
-      - PGPASSWORD=${PGPASSWORD:-postgres}
-      - RETENTION_DAYS=14
-    restart: always
+      - PGBACKREST_REPO1_PATH=/var/lib/pgbackrest
+      
+      # PostgreSQL Connection
+      - PGHOST=${POSTGRES_HOST:-coordinator}
+      - PGPORT=${POSTGRES_PORT:-5432}
+      - PGUSER=${POSTGRES_USER:-postgres}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB:-exadb}
+      
+      # System Settings
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - TZ=${TIMEZONE:-UTC}
+    
+    ports:
+      - "${BACKUP_DASHBOARD_PORT:-8080}:8080"
+    
+    volumes:
+      # Access to pgBackRest repository (read-only)
+      - pgbackrest_repo:/var/lib/pgbackrest:ro
+      - pgbackrest_logs:/var/log/pgbackrest
+      
+      # Configuration (read-only)
+      - ../../pgbackrest/conf:/etc/pgbackrest:ro
+      
+      # Dashboard data
+      - backup_dashboard_data:/app/data
+    
+    networks:
+      - exapg_network
+    
     depends_on:
       - pgbackrest
-    networks:
-      - exapg-backup-network
+      - coordinator
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    labels:
+      - "com.exapg.service=backup"
+      - "com.exapg.component=dashboard"
+      - "com.exapg.monitor=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.backup-dashboard.rule=Host(`backup.${DOMAIN:-localhost}`)"
+      - "traefik.http.services.backup-dashboard.loadbalancer.server.port=8080"
 
-networks:
-  exapg-backup-network:
-    driver: bridge
+  # Backup Verification Service
+  backup-verification:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.backup-verification
+    container_name: ${COMPOSE_PROJECT_NAME}_backup_verification
+    hostname: backup-verification
+    restart: unless-stopped
+    
+    environment:
+      # Verification Configuration
+      - BACKUP_VERIFICATION_SCHEDULE=${BACKUP_VERIFICATION_SCHEDULE:-0 4 * * *}
+      - BACKUP_VERIFICATION_FULL_SCHEDULE=${BACKUP_VERIFICATION_FULL_SCHEDULE:-0 2 * * 6}
+      
+      # pgBackRest Configuration
+      - PGBACKREST_STANZA=${PGBACKREST_STANZA:-exapg}
+      - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
+      - PGBACKREST_REPO1_PATH=/var/lib/pgbackrest
+      
+      # PostgreSQL Connection
+      - PGHOST=${POSTGRES_HOST:-coordinator}
+      - PGPORT=${POSTGRES_PORT:-5432}
+      - PGUSER=${POSTGRES_USER:-postgres}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB:-exadb}
+      
+      # Notification Settings
+      - BACKUP_NOTIFICATIONS_ENABLED=${BACKUP_NOTIFICATIONS_ENABLED:-true}
+      - BACKUP_EMAIL_ENABLED=${BACKUP_EMAIL_ENABLED:-false}
+      - BACKUP_SLACK_ENABLED=${BACKUP_SLACK_ENABLED:-false}
+      
+      # System Settings
+      - TZ=${TIMEZONE:-UTC}
+    
+    volumes:
+      # Access to pgBackRest repository
+      - pgbackrest_repo:/var/lib/pgbackrest:ro
+      - pgbackrest_logs:/var/log/pgbackrest
+      
+      # Configuration
+      - ../../pgbackrest/conf:/etc/pgbackrest:ro
+      - ../../pgbackrest/scripts:/usr/local/bin:ro
+      
+      # Verification results
+      - backup_verification_data:/var/lib/verification
+    
+    networks:
+      - exapg_network
+    
+    depends_on:
+      - pgbackrest
+      - coordinator
+    
+    command: ["crond", "-f", "-l", "8"]
+    
+    labels:
+      - "com.exapg.service=backup"
+      - "com.exapg.component=verification"
+      - "com.exapg.monitor=true"
+
+  # Disaster Recovery Testing Service
+  disaster-recovery-test:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.disaster-recovery
+    container_name: ${COMPOSE_PROJECT_NAME}_disaster_recovery
+    hostname: disaster-recovery
+    restart: "no"  # Manual start for testing
+    
+    environment:
+      # DR Test Configuration
+      - DR_TEST_SCHEDULE=${DR_TEST_SCHEDULE:-0 3 * * 0}  # Weekly on Sunday
+      - DR_TEST_RETENTION_DAYS=${DR_TEST_RETENTION_DAYS:-30}
+      
+      # pgBackRest Configuration
+      - PGBACKREST_STANZA=${PGBACKREST_STANZA:-exapg}
+      - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
+      - PGBACKREST_REPO1_PATH=/var/lib/pgbackrest
+      
+      # PostgreSQL Connection
+      - PGHOST=${POSTGRES_HOST:-coordinator}
+      - PGPORT=${POSTGRES_PORT:-5432}
+      - PGUSER=${POSTGRES_USER:-postgres}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB:-exadb}
+      
+      # Test Environment
+      - DR_TEST_POSTGRES_PORT=5555
+      - DR_TEST_DATA_PATH=/tmp/exapg_dr_test
+      
+      # System Settings
+      - TZ=${TIMEZONE:-UTC}
+    
+    volumes:
+      # Access to pgBackRest repository
+      - pgbackrest_repo:/var/lib/pgbackrest:ro
+      - pgbackrest_logs:/var/log/pgbackrest
+      
+      # Configuration
+      - ../../pgbackrest/conf:/etc/pgbackrest:ro
+      - ../../pgbackrest/scripts:/usr/local/bin:ro
+      
+      # Test results and temporary data
+      - disaster_recovery_data:/var/lib/disaster-recovery
+      - disaster_recovery_temp:/tmp/exapg_dr_test
+    
+    networks:
+      - exapg_network
+    
+    depends_on:
+      - pgbackrest
+      - coordinator
+    
+    profiles:
+      - disaster-recovery
+    
+    labels:
+      - "com.exapg.service=backup"
+      - "com.exapg.component=disaster-recovery"
+      - "com.exapg.monitor=false"
 
 volumes:
-  pgbackrest_data:
+  # pgBackRest Repository Data
+  pgbackrest_repo:
     driver: local
+    labels:
+      - "com.exapg.volume=backup-repository"
+      - "com.exapg.backup=exclude"  # Don't backup the backup repository
+  
+  # pgBackRest Spool Directory
   pgbackrest_spool:
     driver: local
+    labels:
+      - "com.exapg.volume=backup-spool"
+      - "com.exapg.backup=exclude"
+  
+  # pgBackRest Logs
   pgbackrest_logs:
     driver: local
-  backup_verification_logs:
+    labels:
+      - "com.exapg.volume=backup-logs"
+      - "com.exapg.backup=include"
+  
+  # pgBackRest SSH Keys
+  pgbackrest_ssh:
     driver: local
-  pitr_data:
+    labels:
+      - "com.exapg.volume=backup-ssh"
+      - "com.exapg.backup=include"
+  
+  # Backup Dashboard Data
+  backup_dashboard_data:
     driver: local
+    labels:
+      - "com.exapg.volume=dashboard-data"
+      - "com.exapg.backup=include"
+  
+  # Backup Verification Data
+  backup_verification_data:
+    driver: local
+    labels:
+      - "com.exapg.volume=verification-data"
+      - "com.exapg.backup=include"
+  
+  # Disaster Recovery Test Data
+  disaster_recovery_data:
+    driver: local
+    labels:
+      - "com.exapg.volume=disaster-recovery-data"
+      - "com.exapg.backup=include"
+  
+  # Temporary DR Test Data (not persistent)
+  disaster_recovery_temp:
+    driver: local
+    labels:
+      - "com.exapg.volume=temp"
+      - "com.exapg.backup=exclude"
+
+networks:
+  exapg_network:
+    external: true
+
+# Health check extension for backup services
+x-backup-healthcheck: &backup-healthcheck
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 60s
+
+# Common backup environment extension
+x-backup-env: &backup-env
+  TZ: ${TIMEZONE:-UTC}
+  PGBACKREST_STANZA: ${PGBACKREST_STANZA:-exapg}
+  PGHOST: ${POSTGRES_HOST:-coordinator}
+  PGPORT: ${POSTGRES_PORT:-5432}
+  PGUSER: ${POSTGRES_USER:-postgres}
+  PGPASSWORD: ${POSTGRES_PASSWORD}
+  PGDATABASE: ${POSTGRES_DB:-exadb}

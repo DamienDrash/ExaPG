@@ -2,28 +2,46 @@
 
 ## Latest Release
 
-### Version 2.0.0 - Enterprise Benchmark Suite (May 24, 2024)
+### Version 3.0.0 - Enterprise Production Ready (December 19, 2024)
 
-The 2.0.0 release represents a major milestone in ExaPG development with enterprise-grade features and professional tooling.
+The 3.0.0 release is a major milestone that transforms ExaPG into an enterprise-grade analytical database platform with production-ready security, Kubernetes support, and comprehensive testing.
 
 **🎯 Key Highlights:**
-- **Enterprise Benchmark Suite** with industry-standard TPC-H, TPC-DS, and pgbench tests
-- **Interactive CLI Interface** replacing multiple scripts with unified management
-- **Professional Documentation** completely rewritten in English with modern structure
-- **Real Performance Metrics** based on 2023-2024 database comparisons
+- **Kubernetes Native** - Complete K8s deployment with StatefulSets, monitoring, and management tools
+- **Enterprise Security** - SCRAM-SHA-256 auth, SSL/TLS encryption, non-root containers
+- **Production Ready** - 175+ automated tests, disaster recovery, professional monitoring
+- **Cloud Native** - Multi-environment support, GitOps ready, horizontal scaling
 
 **📥 Download:**
 ```bash
-git clone https://github.com/DamienDrash/ExaPG.git --branch v2.0.0
+git clone https://github.com/DamienDrash/ExaPG.git --branch v3.0.0
 cd ExaPG
 ./exapg
 ```
 
-**📚 Full Release Notes:** See [CHANGELOG.md](CHANGELOG.md#200---2024-05-24)
+**🚀 Kubernetes Deployment:**
+```bash
+cd k8s
+./deploy.sh prod --all
+```
+
+**📚 Full Release Notes:** See [CHANGELOG.md](CHANGELOG.md#300---2024-12-19)
 
 ---
 
 ## Stable Releases
+
+### Version 2.0.0 - Enterprise Benchmark Suite (May 24, 2024)
+
+The 2.0.0 release introduced enterprise-grade features and professional tooling.
+
+**Features:**
+- Enterprise Benchmark Suite with TPC-H, TPC-DS, pgbench
+- Interactive CLI Interface for unified management
+- Professional documentation in English
+- Real performance metrics and comparisons
+
+**Download:** `git clone https://github.com/DamienDrash/ExaPG.git --branch v2.0.0`
 
 ### Version 1.5.0 - Automatic Cluster Management (May 20, 2024)
 
@@ -150,9 +168,9 @@ ExaPG follows a time-based release schedule:
 
 ### Upcoming Releases
 
-- **v2.1.0** (June 2024): CI/CD integration, automated testing
-- **v2.2.0** (July 2024): Cloud deployment templates
-- **v3.0.0** (Q3 2024): Enterprise security features
+- **v3.1.0** (January 2025): Connection pooling, advanced health checks
+- **v3.2.0** (February 2025): CloudNativePG operator integration
+- **v4.0.0** (Q2 2025): Service mesh integration, multi-region support
 
 ---
 
@@ -160,13 +178,14 @@ ExaPG follows a time-based release schedule:
 
 | Version | Status | Support Until |
 |---------|--------|---------------|
-| 2.0.x | **Current** | June 2025 |
+| 3.0.x | **Current** | December 2025 |
+| 2.0.x | Supported | June 2025 |
 | 1.5.x | Supported | December 2024 |
-| 1.4.x | Supported | November 2024 |
-| 1.3.x | Supported | October 2024 |
-| 1.2.x | Maintenance | September 2024 |
-| 1.1.x | Maintenance | August 2024 |
-| 1.0.x | Maintenance | July 2024 |
+| 1.4.x | Maintenance | November 2024 |
+| 1.3.x | Maintenance | October 2024 |
+| 1.2.x | End of Life | - |
+| 1.1.x | End of Life | - |
+| 1.0.x | End of Life | - |
 | < 1.0 | End of Life | - |
 
 **Support Levels:**

@@ -1,0 +1,266 @@
+# ===================================================================
+# ExaPG Docker Compose Production Override
+# ===================================================================
+# ARCHITECTURE FIX: Consolidated from multiple docker-compose files
+# Date: 2024-05-24
+#
+# Usage: 
+#   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+#   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --profile cluster
+# ===================================================================
+
+version: '3.8'
+
+services:
+  # Production-optimized coordinator configuration
+  coordinator:
+    environment:
+      # Production logging (less verbose)
+      POSTGRES_LOG_LEVEL: warning
+      POSTGRES_LOG_STATEMENT: mod
+      POSTGRES_LOG_MIN_DURATION_STATEMENT: 1000
+
+      # Production performance settings (optimized)
+      POSTGRES_SHARED_BUFFERS: '${SHARED_BUFFERS:-8GB}'
+      POSTGRES_WORK_MEM: '${WORK_MEM:-512MB}'
+      POSTGRES_MAINTENANCE_WORK_MEM: '${MAINTENANCE_WORK_MEM:-1GB}'
+
+      # Production features
+      ENABLE_DEBUG_MODE: 'false'
+      ENABLE_QUERY_LOGGING: 'false'
+      ENABLE_PERFORMANCE_INSIGHTS: 'true'
+      ENABLE_METRICS_COLLECTION: 'true'
+
+      # Production security
+      POSTGRES_SSL_MODE: 'require'
+      POSTGRES_SSL_CERT_FILE: '/etc/ssl/certs/server.crt'
+      POSTGRES_SSL_KEY_FILE: '/etc/ssl/private/server.key'
+
+      # Production optimization
+      POSTGRES_CHECKPOINT_COMPLETION_TARGET: '0.9'
+      POSTGRES_WAL_BUFFERS: '16MB'
+      POSTGRES_EFFECTIVE_IO_CONCURRENCY: '${EFFECTIVE_IO_CONCURRENCY:-300}'
+      POSTGRES_RANDOM_PAGE_COST: '${RANDOM_PAGE_COST:-1.1}'
+
+    # Production volume mounts (logs only)
+    volumes:
+      - coordinator_logs:/var/log/postgresql
+      - coordinator_wal:/var/lib/postgresql/data/pg_wal
+
+    # Production resource limits (high performance)
+    deploy:
+      resources:
+        limits:
+          memory: ${COORDINATOR_MEMORY_LIMIT:-16G}
+          cpus: '${COORDINATOR_CPU_LIMIT:-8.0}'
+        reservations:
+          memory: ${COORDINATOR_MEMORY_RESERVATION:-8G}
+          cpus: '${COORDINATOR_CPU_RESERVATION:-4.0}'
+
+      # Production restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+    # Production healthcheck
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-exadb}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Production security
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=1G,mode=1777
+
+    # Production ulimits
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 32768
+        hard: 32768
+
+  # Production workers (automatically enabled in production)
+  worker1:
+    environment:
+      # Production worker logging
+      POSTGRES_LOG_LEVEL: warning
+      POSTGRES_LOG_STATEMENT: mod
+      POSTGRES_LOG_MIN_DURATION_STATEMENT: 2000
+
+      # Production worker performance
+      POSTGRES_SHARED_BUFFERS: '${WORKER_SHARED_BUFFERS:-6GB}'
+      POSTGRES_WORK_MEM: '${WORKER_WORK_MEM:-256MB}'
+      POSTGRES_MAINTENANCE_WORK_MEM: '${WORKER_MAINTENANCE_WORK_MEM:-512MB}'
+
+      # Production worker optimization
+      POSTGRES_EFFECTIVE_IO_CONCURRENCY: '${WORKER_EFFECTIVE_IO_CONCURRENCY:-200}'
+      POSTGRES_RANDOM_PAGE_COST: '${WORKER_RANDOM_PAGE_COST:-1.1}'
+
+    volumes:
+      - worker1_logs:/var/log/postgresql
+      - worker1_wal:/var/lib/postgresql/data/pg_wal
+
+    deploy:
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT:-12G}
+          cpus: '${WORKER_CPU_LIMIT:-6.0}'
+        reservations:
+          memory: ${WORKER_MEMORY_RESERVATION:-6G}
+          cpus: '${WORKER_CPU_RESERVATION:-3.0}'
+
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}" ]
+      interval: 45s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=512M,mode=1777
+
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  worker2:
+    environment:
+      # Production worker logging
+      POSTGRES_LOG_LEVEL: warning
+      POSTGRES_LOG_STATEMENT: mod
+      POSTGRES_LOG_MIN_DURATION_STATEMENT: 2000
+
+      # Production worker performance
+      POSTGRES_SHARED_BUFFERS: '${WORKER_SHARED_BUFFERS:-6GB}'
+      POSTGRES_WORK_MEM: '${WORKER_WORK_MEM:-256MB}'
+      POSTGRES_MAINTENANCE_WORK_MEM: '${WORKER_MAINTENANCE_WORK_MEM:-512MB}'
+
+      # Production worker optimization
+      POSTGRES_EFFECTIVE_IO_CONCURRENCY: '${WORKER_EFFECTIVE_IO_CONCURRENCY:-200}'
+      POSTGRES_RANDOM_PAGE_COST: '${WORKER_RANDOM_PAGE_COST:-1.1}'
+
+    volumes:
+      - worker2_logs:/var/log/postgresql
+      - worker2_wal:/var/lib/postgresql/data/pg_wal
+
+    deploy:
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT:-12G}
+          cpus: '${WORKER_CPU_LIMIT:-6.0}'
+        reservations:
+          memory: ${WORKER_MEMORY_RESERVATION:-6G}
+          cpus: '${WORKER_CPU_RESERVATION:-3.0}'
+
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}" ]
+      interval: 45s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=512M,mode=1777
+
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # ===================================================================
+  # PRODUCTION BACKUP & MAINTENANCE
+  # ===================================================================
+
+  # Automated backup service (integrated from backup.yml)
+  backup:
+    image: pgbackrest/pgbackrest:latest
+    container_name: ${CONTAINER_NAME:-exapg}-backup
+    profiles:
+      - backup
+      - maintenance
+    environment:
+      PGBACKREST_CONFIG: /etc/pgbackrest/pgbackrest.conf
+      PGBACKREST_STANZA: exapg
+      BACKUP_SCHEDULE: '${BACKUP_SCHEDULE:-0 2 * * *}'
+      BACKUP_RETENTION_DAYS: '${BACKUP_RETENTION_DAYS:-30}'
+      PGHOST: coordinator
+      PGPORT: 5432
+      PGDATABASE: '${POSTGRES_DB:-exadb}'
+      PGUSER: '${POSTGRES_USER:-postgres}'
+      PGPASSWORD: '${POSTGRES_PASSWORD:-postgres}'
+    volumes:
+      - backup_data:/var/lib/pgbackrest
+      - ../../pgbackrest/conf:/etc/pgbackrest:ro
+      - coordinator_data:/var/lib/postgresql/data:ro
+    networks:
+      - exapg-network
+    depends_on:
+      - coordinator
+
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+
+volumes:
+  coordinator_logs:
+    driver: local
+  coordinator_wal:
+    driver: local
+  worker1_logs:
+    driver: local
+  worker1_wal:
+    driver: local
+  worker2_logs:
+    driver: local
+  worker2_wal:
+    driver: local
+  backup_data:
+    driver: local
+
+# ===================================================================
+# PRODUCTION USAGE EXAMPLES:
+# ===================================================================
+# Single node:  docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+# Cluster:      docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --profile cluster
+# With backup:  docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --profile backup
+# =================================================================== 

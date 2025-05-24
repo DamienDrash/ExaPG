@@ -1,110 +1,312 @@
-networks:
-  citus_network:
-    external: true
-    name: exapg_citus_network
-  monitoring_network:
-    driver: bridge
+# ===================================================================
+# ExaPG Docker Compose Monitoring Stack
+# ===================================================================
+# ARCHITECTURE FIX: Consolidated and optimized monitoring configuration
+# Date: 2024-05-24
+# 
+# Usage: 
+#   docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml up
+#   docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml up --profile alerts
+# ===================================================================
+
+version: '3.8'
 
 services:
-  # PostgreSQL-Exporter für Metriken
-  postgres_exporter:
-    image: quay.io/prometheuscommunity/postgres-exporter:latest
-    container_name: exapg-postgres-exporter
-    environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${CONTAINER_NAME}-coordinator:5432/${POSTGRES_DB}?sslmode=disable"
-      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
-    volumes:
-      - ./monitoring/postgres_exporter/queries.yaml:/etc/postgres_exporter/queries.yaml:ro
-    ports:
-      - "${PG_EXPORTER_PORT}:9187"
-    restart: unless-stopped
-    networks:
-      - citus_network
-      - monitoring_network
-    depends_on:
-      - node_exporter
+  # ===================================================================
+  # METRICS COLLECTION
+  # ===================================================================
 
-  # Node-Exporter für Systemmetriken
-  node_exporter:
-    image: quay.io/prometheus/node-exporter:latest
-    container_name: exapg-node-exporter
+  # PostgreSQL metrics exporter
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: ${CONTAINER_NAME:-exapg}-postgres-exporter
+    hostname: postgres-exporter
+    profiles:
+      - monitoring
+    environment:
+      # Main coordinator connection
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@coordinator:5432/${POSTGRES_DB:-exadb}?sslmode=${POSTGRES_SSL_MODE:-prefer}"
+      
+      # Extended metrics configuration
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_DISABLE_SETTINGS_METRICS: "false"
+      PG_EXPORTER_AUTO_DISCOVER_DATABASES: "true"
+      
+      # Performance settings
+      PG_EXPORTER_WEB_LISTEN_ADDRESS: ":9187"
+      PG_EXPORTER_LOG_LEVEL: "info"
+    
+    volumes:
+      - ../../monitoring/postgres_exporter/queries.yaml:/etc/postgres_exporter/queries.yaml:ro
+      - ../../monitoring/postgres_exporter/custom-queries.yaml:/etc/postgres_exporter/custom-queries.yaml:ro
+    
+    ports:
+      - "${PG_EXPORTER_PORT:-9187}:9187"
+    
+    networks:
+      - exapg-network
+    
+    depends_on:
+      - coordinator
+    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9187/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # System metrics exporter
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.7.0
+    container_name: ${CONTAINER_NAME:-exapg}-node-exporter
+    hostname: node-exporter
+    profiles:
+      - monitoring
     command:
       - '--path.rootfs=/host'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($|/)'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.netdev.device-exclude=^(veth|docker|br-).*'
+      - '--web.listen-address=:9100'
+      - '--web.telemetry-path=/metrics'
+      - '--log.level=info'
+    
     volumes:
       - '/:/host:ro,rslave'
+      - '/proc:/host/proc:ro'
+      - '/sys:/host/sys:ro'
+    
     ports:
-      - "${NODE_EXPORTER_PORT}:9100"
-    restart: unless-stopped
+      - "${NODE_EXPORTER_PORT:-9100}:9100"
+    
     networks:
-      - monitoring_network
+      - exapg-network
+    
+    pid: host
+    
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+        reservations:
+          memory: 32M
+          cpus: '0.05'
 
-  # Prometheus für Metrik-Sammlung
+  # ===================================================================
+  # METRICS STORAGE & QUERYING
+  # ===================================================================
+
+  # Prometheus metrics storage and querying
   prometheus:
-    image: prom/prometheus:latest
-    container_name: exapg-prometheus
+    image: prom/prometheus:v2.48.1
+    container_name: ${CONTAINER_NAME:-exapg}-prometheus
+    hostname: prometheus
+    profiles:
+      - monitoring
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME}'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME:-15d}'
+      - '--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-10GB}'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--log.level=info'
+      - '--query.max-concurrency=${PROMETHEUS_MAX_CONCURRENCY:-20}'
+    
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ../../monitoring/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml:ro
       - prometheus_data:/prometheus
+    
     ports:
-      - "${PROMETHEUS_PORT}:9090"
-    restart: unless-stopped
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    
     networks:
-      - monitoring_network
+      - exapg-network
+    
     depends_on:
-      - postgres_exporter
-      - node_exporter
+      - postgres-exporter
+      - node-exporter
+    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    deploy:
+      resources:
+        limits:
+          memory: ${PROMETHEUS_MEMORY_LIMIT:-4G}
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
 
-  # Alertmanager für Benachrichtigungen
+  # ===================================================================
+  # ALERTING
+  # ===================================================================
+
+  # Alertmanager for notifications
   alertmanager:
-    image: prom/alertmanager:latest
-    container_name: exapg-alertmanager
+    image: prom/alertmanager:v0.26.0
+    container_name: ${CONTAINER_NAME:-exapg}-alertmanager
+    hostname: alertmanager
+    profiles:
+      - monitoring
+      - alerts
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:${ALERTMANAGER_PORT:-9093}'
+      - '--log.level=info'
+    
     environment:
-      - ALERT_EMAIL_FROM=${ALERT_EMAIL_FROM}
-      - ALERT_EMAIL_TO=${ALERT_EMAIL_TO}
-      - ALERT_SMTP_SERVER=${ALERT_SMTP_SERVER}
-      - ALERT_SMTP_USER=${ALERT_SMTP_USER}
-      - ALERT_SMTP_PASSWORD=${ALERT_SMTP_PASSWORD}
+      # Email configuration
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@exapg.local}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-admin@exapg.local}
+      ALERT_SMTP_SERVER: ${ALERT_SMTP_SERVER:-smtp.gmail.com:587}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-alerts@exapg.local}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-changeme}
+      
+      # Slack configuration (optional)
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      SLACK_CHANNEL: ${SLACK_CHANNEL:-#exapg-alerts}
+    
     volumes:
-      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ../../monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ../../monitoring/alertmanager/templates:/etc/alertmanager/templates:ro
+      - alertmanager_data:/alertmanager
+    
     ports:
-      - "${ALERTMANAGER_PORT}:9093"
-    restart: unless-stopped
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    
     networks:
-      - monitoring_network
+      - exapg-network
+    
     depends_on:
       - prometheus
+    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Grafana für Dashboards
+  # ===================================================================
+  # VISUALIZATION
+  # ===================================================================
+
+  # Grafana for dashboards and visualization
   grafana:
-    image: grafana/grafana:latest
-    container_name: exapg-grafana
+    image: grafana/grafana:10.2.2
+    container_name: ${CONTAINER_NAME:-exapg}-grafana
+    hostname: grafana
+    profiles:
+      - monitoring
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-      - GF_USERS_ALLOW_SIGN_UP=false
+      # Security
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-exapg_admin}
+      GF_SECURITY_SECRET_KEY: ${GRAFANA_SECRET_KEY:-SW2YcwTIb9zpOOhoPsMm}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_USERS_ALLOW_ORG_CREATE: 'false'
+      
+      # Database for session storage (optional)
+      GF_DATABASE_TYPE: sqlite3
+      GF_DATABASE_PATH: /var/lib/grafana/grafana.db
+      
+      # UI customization
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+      GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-worldmap-panel,grafana-clock-panel
+      
+      # Performance
+      GF_RENDERING_SERVER_URL: http://grafana-renderer:8081/render
+      GF_RENDERING_CALLBACK_URL: http://grafana:3000/
+      
+      # Alerting
+      GF_ALERTING_ENABLED: 'true'
+      GF_UNIFIED_ALERTING_ENABLED: 'true'
+    
     volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - ../../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
+    
     ports:
-      - "${GRAFANA_PORT}:3000"
-    restart: unless-stopped
+      - "${GRAFANA_PORT:-3000}:3000"
+    
     networks:
-      - monitoring_network
+      - exapg-network
+    
     depends_on:
       - prometheus
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Grafana image renderer (for PDF reports and PNG snapshots)
+  grafana-renderer:
+    image: grafana/grafana-image-renderer:latest
+    container_name: ${CONTAINER_NAME:-exapg}-grafana-renderer
+    hostname: grafana-renderer
+    profiles:
+      - monitoring
+      - rendering
+    environment:
+      ENABLE_METRICS: 'true'
+      HTTP_PORT: 8081
+    
+    ports:
+      - "${GRAFANA_RENDERER_PORT:-8081}:8081"
+    
+    networks:
+      - exapg-network
+    
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
 
 volumes:
   prometheus_data:
     driver: local
   grafana_data:
     driver: local
+  alertmanager_data:
+    driver: local
+
+# ===================================================================
+# MONITORING PROFILES AVAILABLE:
+# ===================================================================
+# monitoring:  Full monitoring stack (Prometheus, Grafana, Exporters)
+# alerts:      Include Alertmanager for notifications
+# rendering:   Include Grafana renderer for reports
+# ===================================================================

@@ -1,0 +1,265 @@
+# ===================================================================
+# ExaPG Docker Compose Management & Administration Stack
+# ===================================================================
+# ARCHITECTURE FIX: Consolidated from management-ui.yml and other mgmt tools
+# Date: 2024-05-24
+#
+# Usage: 
+#   docker-compose -f docker-compose.yml -f docker-compose.mgmt.yml up
+#   docker-compose -f docker-compose.yml -f docker-compose.mgmt.yml up --profile admin
+# ===================================================================
+
+version: '3.8'
+
+services:
+  # ===================================================================
+  # MANAGEMENT UI STACK
+  # ===================================================================
+
+  # ExaPG Management UI (Frontend + Backend)
+  management-ui:
+    build:
+      context: ../../management-ui
+      dockerfile: Dockerfile
+    container_name: ${CONTAINER_NAME:-exapg}-management-ui
+    hostname: management-ui
+    profiles:
+      - mgmt
+      - ui
+    ports:
+      - "${MGMT_UI_PORT:-3002}:80"
+    environment:
+      # Database connection (uses coordinator)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@coordinator:5432/${POSTGRES_DB:-exadb}
+
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-exapg-secret-key-change-in-production}
+      SESSION_TIMEOUT: ${SESSION_TIMEOUT:-3600}
+
+      # UI Configuration
+      EXAPG_CLUSTER_NAME: ${EXAPG_CLUSTER_NAME:-ExaPG Development}
+      EXAPG_ENVIRONMENT: ${EXAPG_ENVIRONMENT:-development}
+      ENABLE_DARK_MODE: ${ENABLE_DARK_MODE:-true}
+
+      # Feature toggles
+      ENABLE_QUERY_EDITOR: ${ENABLE_QUERY_EDITOR:-true}
+      ENABLE_PERFORMANCE_DASHBOARD: ${ENABLE_PERFORMANCE_DASHBOARD:-true}
+      ENABLE_USER_MANAGEMENT: ${ENABLE_USER_MANAGEMENT:-true}
+      ENABLE_BACKUP_MANAGEMENT: ${ENABLE_BACKUP_MANAGEMENT:-false}
+
+      # Monitoring integration
+      PROMETHEUS_URL: http://prometheus:9090
+      GRAFANA_URL: http://grafana:3000
+
+    volumes:
+      - management_ui_logs:/var/log
+      - management_ui_config:/etc/exapg
+
+    networks:
+      - exapg-network
+
+    depends_on:
+      - coordinator
+
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # ===================================================================
+  # DATABASE ADMINISTRATION TOOLS
+  # ===================================================================
+
+  # pgAdmin for database administration
+  pgadmin:
+    image: dpage/pgadmin4:7.8
+    container_name: ${CONTAINER_NAME:-exapg}-pgadmin
+    hostname: pgadmin
+    profiles:
+      - mgmt
+      - admin
+    ports:
+      - "${PGADMIN_PORT:-5051}:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@exapg.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: 'True'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+
+      # Performance optimizations
+      PGADMIN_CONFIG_SESSION_COOKIE_SECURE: 'False'
+      PGADMIN_CONFIG_WTF_CSRF_SSL_STRICT: 'False'
+
+      # UI customization
+      PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: 30
+
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - pgadmin_config:/pgadmin4/config
+
+    networks:
+      - exapg-network
+
+    depends_on:
+      - coordinator
+
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/misc/ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Adminer (lightweight alternative to pgAdmin)
+  adminer:
+    image: adminer:4.8.1
+    container_name: ${CONTAINER_NAME:-exapg}-adminer
+    hostname: adminer
+    profiles:
+      - admin
+      - lightweight
+    ports:
+      - "${ADMINER_PORT:-8081}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: coordinator
+      ADMINER_DESIGN: pepa-linha-dark
+    networks:
+      - exapg-network
+    depends_on:
+      - coordinator
+
+  # ===================================================================
+  # MONITORING & OBSERVABILITY INTEGRATION
+  # ===================================================================
+
+  # Grafana for monitoring dashboards (if not in monitoring stack)
+  grafana-mgmt:
+    image: grafana/grafana:10.2.2
+    container_name: ${CONTAINER_NAME:-exapg}-grafana-mgmt
+    hostname: grafana-mgmt
+    profiles:
+      - mgmt
+      - monitoring
+    ports:
+      - "${GRAFANA_MGMT_PORT:-3003}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-exapg_admin}
+      GF_SECURITY_ALLOW_EMBEDDING: 'true'
+      GF_AUTH_DISABLE_LOGIN_FORM: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+
+      # Database integration
+      GF_DATABASE_TYPE: postgres
+      GF_DATABASE_HOST: coordinator:5432
+      GF_DATABASE_NAME: ${POSTGRES_DB:-exadb}
+      GF_DATABASE_USER: ${POSTGRES_USER:-postgres}
+      GF_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+
+      # UI settings
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/exapg-overview.json
+
+    volumes:
+      - grafana_mgmt_data:/var/lib/grafana
+      - ../../monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+
+    networks:
+      - exapg-network
+
+    depends_on:
+      - coordinator
+
+  # ===================================================================
+  # FILE MANAGEMENT & UTILITIES
+  # ===================================================================
+
+  # File browser for log and data management
+  filebrowser:
+    image: filebrowser/filebrowser:v2.27.0
+    container_name: ${CONTAINER_NAME:-exapg}-filebrowser
+    hostname: filebrowser
+    profiles:
+      - mgmt
+      - files
+    ports:
+      - "${FILEBROWSER_PORT:-8082}:80"
+    environment:
+      FB_DATABASE: /database/filebrowser.db
+      FB_ROOT: /srv
+      FB_LOG: stdout
+      FB_NOAUTH: 'false'
+    volumes:
+      - filebrowser_data:/database
+      - filebrowser_config:/config
+      - ../../:/srv/exapg:ro
+      - coordinator_data:/srv/database:ro
+      - coordinator_logs:/srv/logs:ro
+    networks:
+      - exapg-network
+    user: "${FILEBROWSER_UID:-1000}:${FILEBROWSER_GID:-1000}"
+
+  # ===================================================================
+  # BACKUP MANAGEMENT UI
+  # ===================================================================
+
+  # pgBackRest UI (if backup profile is enabled)
+  backup-ui:
+    image: pgbackrest/pgbackrest:latest
+    container_name: ${CONTAINER_NAME:-exapg}-backup-ui
+    hostname: backup-ui
+    profiles:
+      - mgmt
+      - backup
+    environment:
+      PGBACKREST_CONFIG: /etc/pgbackrest/pgbackrest.conf
+      PGBACKREST_STANZA: exapg
+    volumes:
+      - backup_ui_data:/var/lib/pgbackrest
+      - ../../pgbackrest/conf:/etc/pgbackrest:ro
+    networks:
+      - exapg-network
+    depends_on:
+      - coordinator
+    command: [ "tail", "-f", "/dev/null" ] # Keep container running for manual commands
+
+volumes:
+  management_ui_logs:
+    driver: local
+  management_ui_config:
+    driver: local
+  pgadmin_data:
+    driver: local
+  pgadmin_config:
+    driver: local
+  grafana_mgmt_data:
+    driver: local
+  filebrowser_data:
+    driver: local
+  filebrowser_config:
+    driver: local
+  backup_ui_data:
+    driver: local
+
+# ===================================================================
+# MANAGEMENT PROFILES AVAILABLE:
+# ===================================================================
+# mgmt:        Full management stack (UI, pgAdmin, Grafana, FileBrowser)
+# ui:          Management UI only
+# admin:       pgAdmin + Adminer only
+# monitoring:  Grafana integration only
+# files:       File browser only
+# backup:      Backup management tools
+# lightweight: Minimal tools (Adminer only)
+# =================================================================== 

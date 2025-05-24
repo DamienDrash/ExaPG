@@ -1,0 +1,600 @@
+---
+# Citus Worker Registration Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: exapg-citus-setup
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: citus-setup
+    app.kubernetes.io/part-of: exapg-database
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exapg
+        app.kubernetes.io/component: citus-setup
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: citus-setup
+        image: postgres:15
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_DB
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_PASSWORD
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          
+          echo "Starting Citus cluster setup..."
+          
+          # Wait for coordinator to be ready
+          until pg_isready -h exapg-coordinator.exapg.svc.cluster.local -p 5432 -U "$POSTGRES_USER"; do
+            echo "Waiting for coordinator to be ready..."
+            sleep 5
+          done
+          
+          # Wait for workers to be ready
+          until pg_isready -h exapg-worker1.exapg.svc.cluster.local -p 5432 -U "$POSTGRES_USER"; do
+            echo "Waiting for worker1 to be ready..."
+            sleep 5
+          done
+          
+          until pg_isready -h exapg-worker2.exapg.svc.cluster.local -p 5432 -U "$POSTGRES_USER"; do
+            echo "Waiting for worker2 to be ready..."
+            sleep 5
+          done
+          
+          echo "All nodes are ready. Setting up Citus cluster..."
+          
+          # Add worker nodes to the cluster
+          psql -h exapg-coordinator.exapg.svc.cluster.local -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<-EOSQL
+          
+          -- Check if workers are already added
+          DO \$\$
+          DECLARE
+              worker_count INTEGER;
+          BEGIN
+              SELECT COUNT(*) INTO worker_count FROM pg_dist_node WHERE nodeport = 5432;
+              
+              IF worker_count = 0 THEN
+                  -- Add worker nodes
+                  SELECT citus_add_node('exapg-worker1.exapg.svc.cluster.local', 5432);
+                  SELECT citus_add_node('exapg-worker2.exapg.svc.cluster.local', 5432);
+                  
+                  RAISE NOTICE 'Worker nodes added to Citus cluster';
+              ELSE
+                  RAISE NOTICE 'Worker nodes already exist in cluster (% nodes)', worker_count;
+              END IF;
+          END
+          \$\$;
+          
+          -- Verify cluster status
+          SELECT * FROM citus_get_active_worker_nodes();
+          
+          -- Create sample distributed table for testing
+          DO \$\$
+          BEGIN
+              IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'events') THEN
+                  CREATE TABLE events (
+                      id BIGSERIAL,
+                      user_id BIGINT,
+                      event_type TEXT,
+                      event_data JSONB,
+                      created_at TIMESTAMP DEFAULT NOW()
+                  );
+                  
+                  -- Distribute the table
+                  SELECT create_distributed_table('events', 'user_id');
+                  
+                  RAISE NOTICE 'Sample distributed table "events" created';
+              ELSE
+                  RAISE NOTICE 'Sample table "events" already exists';
+              END IF;
+          END
+          \$\$;
+          
+          -- Create sample reference table
+          DO \$\$
+          BEGIN
+              IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
+                  CREATE TABLE users (
+                      id BIGSERIAL PRIMARY KEY,
+                      username TEXT UNIQUE,
+                      email TEXT,
+                      created_at TIMESTAMP DEFAULT NOW()
+                  );
+                  
+                  -- Make it a reference table
+                  SELECT create_reference_table('users');
+                  
+                  RAISE NOTICE 'Sample reference table "users" created';
+              ELSE
+                  RAISE NOTICE 'Reference table "users" already exists';
+              END IF;
+          END
+          \$\$;
+          
+          EOSQL
+          
+          echo "Citus cluster setup completed successfully!"
+          
+          # Create analytics functions and procedures
+          psql -h exapg-coordinator.exapg.svc.cluster.local -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<-EOSQL
+          
+          -- Create analytics schema
+          CREATE SCHEMA IF NOT EXISTS analytics;
+          
+          -- Create function for distributed analytics
+          CREATE OR REPLACE FUNCTION analytics.user_activity_summary(
+              start_date DATE DEFAULT CURRENT_DATE - INTERVAL '30 days',
+              end_date DATE DEFAULT CURRENT_DATE
+          )
+          RETURNS TABLE (
+              user_id BIGINT,
+              event_count BIGINT,
+              first_event TIMESTAMP,
+              last_event TIMESTAMP
+          ) AS \$\$
+          BEGIN
+              RETURN QUERY
+              SELECT 
+                  e.user_id,
+                  COUNT(*)::BIGINT as event_count,
+                  MIN(e.created_at) as first_event,
+                  MAX(e.created_at) as last_event
+              FROM events e
+              WHERE e.created_at >= start_date 
+                AND e.created_at < end_date + INTERVAL '1 day'
+              GROUP BY e.user_id
+              ORDER BY event_count DESC;
+          END;
+          \$\$ LANGUAGE plpgsql;
+          
+          -- Create materialized view for real-time analytics
+          CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.daily_activity AS
+          SELECT 
+              DATE(created_at) as activity_date,
+              event_type,
+              COUNT(*) as event_count,
+              COUNT(DISTINCT user_id) as unique_users
+          FROM events
+          WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+          GROUP BY DATE(created_at), event_type
+          ORDER BY activity_date DESC, event_count DESC;
+          
+          -- Create index for performance
+          CREATE INDEX IF NOT EXISTS idx_daily_activity_date 
+          ON analytics.daily_activity (activity_date);
+          
+          EOSQL
+          
+          echo "Analytics setup completed!"
+
+      backoffLimit: 3
+
+---
+# Citus Cluster Health Check Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exapg-citus-health
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: citus-health
+    app.kubernetes.io/part-of: exapg-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exapg
+      app.kubernetes.io/component: citus-health
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exapg
+        app.kubernetes.io/component: citus-health
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: citus-health
+        image: postgres:15
+        ports:
+        - name: http-metrics
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_DB
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_PASSWORD
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          
+          # Install Python and required packages
+          apt-get update && apt-get install -y python3 python3-pip netcat-traditional
+          pip3 install psycopg2-binary prometheus_client
+          
+          cat > /tmp/citus_health_exporter.py << 'EOF'
+          #!/usr/bin/env python3
+          
+          import os
+          import time
+          import psycopg2
+          import json
+          from prometheus_client import start_http_server, Gauge, Counter, Histogram, Info
+          from threading import Thread
+          import logging
+          
+          # Configure logging
+          logging.basicConfig(level=logging.INFO)
+          logger = logging.getLogger(__name__)
+          
+          # Prometheus metrics
+          citus_worker_nodes = Gauge('citus_worker_nodes_total', 'Total number of Citus worker nodes')
+          citus_worker_active = Gauge('citus_worker_nodes_active', 'Number of active Citus worker nodes')
+          citus_shards_total = Gauge('citus_shards_total', 'Total number of shards in Citus cluster')
+          citus_distributed_tables = Gauge('citus_distributed_tables_total', 'Number of distributed tables')
+          citus_reference_tables = Gauge('citus_reference_tables_total', 'Number of reference tables')
+          
+          cluster_health_info = Info('citus_cluster_health', 'Citus cluster health information')
+          
+          def get_db_connection():
+              """Get database connection with retry logic"""
+              max_retries = 5
+              for i in range(max_retries):
+                  try:
+                      conn = psycopg2.connect(
+                          host='exapg-coordinator.exapg.svc.cluster.local',
+                          port=5432,
+                          user=os.getenv('POSTGRES_USER'),
+                          password=os.getenv('POSTGRES_PASSWORD'),
+                          database=os.getenv('POSTGRES_DB')
+                      )
+                      return conn
+                  except Exception as e:
+                      logger.warning(f"Database connection attempt {i+1} failed: {e}")
+                      if i < max_retries - 1:
+                          time.sleep(5)
+                      else:
+                          raise
+          
+          def collect_citus_metrics():
+              """Collect Citus cluster metrics"""
+              try:
+                  conn = get_db_connection()
+                  cur = conn.cursor()
+                  
+                  # Get worker node information
+                  cur.execute("""
+                      SELECT 
+                          COUNT(*) as total_workers,
+                          COUNT(*) FILTER (WHERE isactive) as active_workers
+                      FROM pg_dist_node 
+                      WHERE groupid != 0
+                  """)
+                  worker_stats = cur.fetchone()
+                  if worker_stats:
+                      citus_worker_nodes.set(worker_stats[0])
+                      citus_worker_active.set(worker_stats[1])
+                  
+                  # Get shard information
+                  cur.execute("SELECT COUNT(*) FROM pg_dist_shard")
+                  shard_count = cur.fetchone()[0]
+                  citus_shards_total.set(shard_count)
+                  
+                  # Get distributed tables count
+                  cur.execute("""
+                      SELECT COUNT(*) 
+                      FROM pg_dist_partition 
+                      WHERE partmethod = 'h'
+                  """)
+                  dist_tables = cur.fetchone()[0]
+                  citus_distributed_tables.set(dist_tables)
+                  
+                  # Get reference tables count
+                  cur.execute("""
+                      SELECT COUNT(*) 
+                      FROM pg_dist_partition 
+                      WHERE partmethod = 'n'
+                  """)
+                  ref_tables = cur.fetchone()[0]
+                  citus_reference_tables.set(ref_tables)
+                  
+                  # Update cluster health info
+                  cluster_health_info.info({
+                      'coordinator': 'exapg-coordinator.exapg.svc.cluster.local:5432',
+                      'workers': f"{worker_stats[1]}/{worker_stats[0]} active",
+                      'shards': str(shard_count),
+                      'status': 'healthy' if worker_stats[1] > 0 else 'degraded'
+                  })
+                  
+                  conn.close()
+                  logger.info(f"Metrics updated: {worker_stats[1]}/{worker_stats[0]} workers, {shard_count} shards")
+                  
+              except Exception as e:
+                  logger.error(f"Failed to collect metrics: {e}")
+                  cluster_health_info.info({'status': 'error', 'error': str(e)})
+          
+          def metrics_loop():
+              """Main metrics collection loop"""
+              while True:
+                  collect_citus_metrics()
+                  time.sleep(30)  # Collect metrics every 30 seconds
+          
+          if __name__ == '__main__':
+              logger.info("Starting Citus health monitor...")
+              
+              # Start Prometheus metrics server
+              start_http_server(8080)
+              logger.info("Prometheus metrics server started on port 8080")
+              
+              # Start metrics collection in background
+              metrics_thread = Thread(target=metrics_loop, daemon=True)
+              metrics_thread.start()
+              
+              # Keep the main thread alive
+              try:
+                  while True:
+                      time.sleep(60)
+              except KeyboardInterrupt:
+                  logger.info("Shutting down...")
+          EOF
+          
+          python3 /tmp/citus_health_exporter.py
+        
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+---
+# Service for Citus Health Monitor
+apiVersion: v1
+kind: Service
+metadata:
+  name: exapg-citus-health
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: citus-health
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+spec:
+  ports:
+  - name: http-metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: citus-health
+  type: ClusterIP
+
+---
+# ExaPG Management Interface Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exapg-management-ui
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: management-ui
+    app.kubernetes.io/part-of: exapg-management
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exapg
+      app.kubernetes.io/component: management-ui
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exapg
+        app.kubernetes.io/component: management-ui
+    spec:
+      containers:
+      - name: management-ui
+        image: nginx:alpine
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@exapg-coordinator.exapg.svc.cluster.local:5432/$(POSTGRES_DB)"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_DB
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: exapg-mgmt-secret
+              key: SECRET_KEY
+        
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: exapg-management-config
+
+---
+# ConfigMap for Management UI
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: exapg-management-config
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: management-config
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+    
+    http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+        
+        server {
+            listen 80;
+            server_name _;
+            
+            # Health check endpoint
+            location /health {
+                access_log off;
+                return 200 "healthy\n";
+                add_header Content-Type text/plain;
+            }
+            
+            # Proxy to grafana for monitoring
+            location /grafana/ {
+                proxy_pass http://exapg-grafana:3000/;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+            
+            # Proxy to pgAdmin
+            location /pgadmin/ {
+                proxy_pass http://exapg-pgadmin:80/;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+            
+            # Main ExaPG Dashboard
+            location / {
+                root /usr/share/nginx/html;
+                index index.html;
+                try_files $uri $uri/ /index.html;
+            }
+        }
+    }
+
+---
+# Service for Management UI
+apiVersion: v1
+kind: Service
+metadata:
+  name: exapg-management-ui
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: management-ui
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: management-ui
+  type: ClusterIP 

@@ -1,49 +1,111 @@
-FROM debian:bookworm-slim
+FROM postgres:15-alpine AS builder
 
-# Installiere grundlegende Tools und pgBackRest
-RUN apt-get update && apt-get install -y \
-    postgresql-client \
-    pgbackrest \
-    openssh-client \
-    rsync \
+# Install build dependencies
+RUN apk add --no-cache \
+    build-base \
+    openssl-dev \
+    libxml2-dev \
+    zlib-dev \
+    lz4-dev \
+    zstd-dev \
+    bzip2-dev \
+    git \
     curl \
-    jq \
-    pgbadger \
-    cron \
+    make \
+    cmake \
+    pkgconfig
+
+# Build pgBackRest from source
+WORKDIR /tmp
+RUN git clone https://github.com/pgbackrest/pgbackrest.git \
+    && cd pgbackrest \
+    && git checkout release/2.48 \
+    && cd src \
+    && ./configure --prefix=/usr/local \
+    && make -j$(nproc) \
+    && make install
+
+# Runtime stage
+FROM postgres:15-alpine AS runtime
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    openssl \
+    libxml2 \
+    zlib \
+    lz4-libs \
+    zstd-libs \
+    bzip2-libs \
     python3 \
-    python3-pip \
-    nano \
-    vim \
-    less \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    py3-pip \
+    py3-psycopg2 \
+    curl \
+    bash \
+    dcron \
+    rsync \
+    openssh-client \
+    ca-certificates \
+    tzdata
 
-# Installiere Python-Module für Backup-Skripte und Benachrichtigungen
-RUN pip3 install psycopg2-binary python-telegram-bot requests slackclient
+# Copy pgBackRest from builder stage
+COPY --from=builder /usr/local/bin/pgbackrest /usr/local/bin/
+COPY --from=builder /usr/local/share/pgbackrest /usr/local/share/pgbackrest/
 
-# Erstelle Verzeichnisse für pgBackRest
-RUN mkdir -p /var/lib/pgbackrest \
+# Install Python dependencies for backup scripts
+RUN pip3 install --no-cache-dir \
+    requests \
+    flask \
+    schedule \
+    psycopg2-binary
+
+# Create necessary directories
+RUN mkdir -p \
+    /etc/pgbackrest \
+    /var/lib/pgbackrest \
     /var/spool/pgbackrest \
     /var/log/pgbackrest \
-    /etc/pgbackrest/conf.d
+    /usr/local/bin \
+    /root/.ssh
 
-# Kopiere Skripte und Konfigurationen
-COPY pgbackrest/scripts/backup-scheduler.sh /usr/local/bin/
-COPY pgbackrest/scripts/backup-verification.py /usr/local/bin/
-COPY pgbackrest/scripts/backup-notification.py /usr/local/bin/
-COPY pgbackrest/scripts/setup-stanza.sh /usr/local/bin/
-COPY pgbackrest/scripts/init-backup.sh /entrypoint.sh
+# Create pgbackrest user and set permissions
+RUN addgroup -g 999 pgbackrest \
+    && adduser -D -u 999 -G pgbackrest pgbackrest \
+    && chown -R pgbackrest:pgbackrest /var/lib/pgbackrest /var/spool/pgbackrest /var/log/pgbackrest
 
-# Füge crontab für automatische Backups hinzu
-COPY pgbackrest/scripts/crontab /etc/cron.d/pgbackrest
-RUN chmod 0644 /etc/cron.d/pgbackrest \
-    && chmod +x /usr/local/bin/*.sh /usr/local/bin/*.py /entrypoint.sh
+# Copy backup scripts
+COPY pgbackrest/scripts/ /usr/local/bin/
+RUN chmod +x /usr/local/bin/*.sh /usr/local/bin/*.py
 
-# Zugriffsrechte anpassen
-RUN chmod 750 /var/lib/pgbackrest \
-    /var/spool/pgbackrest \
-    /var/log/pgbackrest
+# Setup cron
+COPY pgbackrest/scripts/crontab /etc/crontabs/root
+RUN chmod 0644 /etc/crontabs/root
 
-# Entrypoint
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["cron", "-f"] 
+# Copy entrypoint script
+COPY docker/scripts/pgbackrest-entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
+    CMD pgbackrest --stanza=${PGBACKREST_STANZA:-exapg} check || exit 1
+
+# Labels
+LABEL maintainer="ExaPG Team" \
+    version="1.0.0" \
+    description="pgBackRest service for ExaPG" \
+    com.exapg.service="backup" \
+    com.exapg.component="pgbackrest"
+
+# Default environment variables
+ENV PGBACKREST_STANZA=exapg \
+    PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf \
+    PGBACKREST_REPO1_PATH=/var/lib/pgbackrest \
+    BACKUP_SCHEDULE_ENABLED=true \
+    BACKUP_PARALLEL_PROCESSES=4 \
+    BACKUP_COMPRESSION_LEVEL=3
+
+# Switch to pgbackrest user
+USER pgbackrest
+
+# Default command
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["crond", "-f", "-l", "8"] 

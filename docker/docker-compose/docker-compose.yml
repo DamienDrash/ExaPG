@@ -32,6 +32,12 @@ services:
       - ../../sql/partitioning/create_partition_function.sql:/sql/partitioning/create_partition_function.sql
       - ../../sql/partitioning/create_partition_strategies.sql:/sql/partitioning/create_partition_strategies.sql
       - ../../sql/parallel/create_parallel_functions.sql:/sql/parallel/create_parallel_functions.sql
+      # SSL/TLS Security Configuration
+      - ../../config/ssl/server.crt:/etc/ssl/certs/server.crt:ro
+      - ../../config/ssl/server.key:/etc/ssl/private/server.key:ro
+      - ../../config/ssl/root.crt:/etc/ssl/certs/root.crt:ro
+      - ../../config/ssl/coordinator.crt:/etc/ssl/certs/postgresql.crt:ro
+      - ../../config/ssl/coordinator.key:/etc/ssl/private/postgresql.key:ro
     ports:
       - "${COORDINATOR_PORT:-5432}:5432"
     environment:
@@ -91,6 +97,12 @@ services:
       - ../../config/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf
       - ../../config/init/init-worker.sh:/docker-entrypoint-initdb.d/init.sh
       - ../../scripts:/scripts
+      # SSL/TLS Security Configuration
+      - ../../config/ssl/server.crt:/etc/ssl/certs/server.crt:ro
+      - ../../config/ssl/server.key:/etc/ssl/private/server.key:ro
+      - ../../config/ssl/root.crt:/etc/ssl/certs/root.crt:ro
+      - ../../config/ssl/worker1.crt:/etc/ssl/certs/postgresql.crt:ro
+      - ../../config/ssl/worker1.key:/etc/ssl/private/postgresql.key:ro
     ports:
       - "${WORKER_PORT_START:-5433}:5432"
     environment:
@@ -131,6 +143,12 @@ services:
       - ../../config/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf
       - ../../config/init/init-worker.sh:/docker-entrypoint-initdb.d/init.sh
       - ../../scripts:/scripts
+      # SSL/TLS Security Configuration
+      - ../../config/ssl/server.crt:/etc/ssl/certs/server.crt:ro
+      - ../../config/ssl/server.key:/etc/ssl/private/server.key:ro
+      - ../../config/ssl/root.crt:/etc/ssl/certs/root.crt:ro
+      - ../../config/ssl/worker2.crt:/etc/ssl/certs/postgresql.crt:ro
+      - ../../config/ssl/worker2.key:/etc/ssl/private/postgresql.key:ro
     ports:
       - "${WORKER_PORT_START_2:-5434}:5432"
     environment:

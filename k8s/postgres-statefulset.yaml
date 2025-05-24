@@ -1,0 +1,671 @@
+---
+# Service für Coordinator
+apiVersion: v1
+kind: Service
+metadata:
+  name: exapg-coordinator
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: coordinator
+    app.kubernetes.io/part-of: exapg-database
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: coordinator
+  type: ClusterIP
+
+---
+# Headless Service für StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: exapg-coordinator-headless
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: coordinator
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  selector:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: coordinator
+  clusterIP: None
+
+---
+# Coordinator StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: exapg-coordinator
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: coordinator
+    app.kubernetes.io/part-of: exapg-database
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  serviceName: exapg-coordinator-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exapg
+      app.kubernetes.io/component: coordinator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exapg
+        app.kubernetes.io/component: coordinator
+        app.kubernetes.io/part-of: exapg-database
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5432"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+      - name: postgres
+        image: exapg:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: postgres
+          containerPort: 5432
+          protocol: TCP
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_DB
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        
+        # PostgreSQL Performance Configuration
+        - name: POSTGRES_SHARED_BUFFERS
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: shared_buffers
+        - name: POSTGRES_WORK_MEM
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: work_mem
+        - name: POSTGRES_MAINTENANCE_WORK_MEM
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: maintenance_work_mem
+        - name: POSTGRES_MAX_WORKER_PROCESSES
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: max_parallel_workers
+        - name: POSTGRES_MAX_PARALLEL_WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: max_parallel_workers
+        - name: POSTGRES_MAX_PARALLEL_WORKERS_PER_GATHER
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: max_parallel_workers_per_gather
+        - name: POSTGRES_EFFECTIVE_IO_CONCURRENCY
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: effective_io_concurrency
+        
+        # Citus Configuration
+        - name: CITUS_ENABLE_COLUMNAR
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: citus_enable_columnar
+        - name: COLUMNAR_COMPRESSION
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: columnar_compression
+        
+        # JIT Configuration
+        - name: POSTGRES_JIT
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: jit
+        - name: POSTGRES_JIT_ABOVE_COST
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: jit_above_cost
+        
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql-coordinator.conf
+        - name: postgres-config
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d/init.sh
+          subPath: init-coordinator.sh
+        - name: ssl-certs
+          mountPath: /etc/ssl/certs
+          readOnly: true
+        - name: ssl-private
+          mountPath: /etc/ssl/private
+          readOnly: true
+        - name: postgres-logs
+          mountPath: /var/log/postgresql
+        
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "1000m"
+          limits:
+            memory: "8Gi"
+            cpu: "4000m"
+        
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+      
+      volumes:
+      - name: postgres-config
+        configMap:
+          name: exapg-postgresql-config
+          defaultMode: 0644
+      - name: init-scripts
+        configMap:
+          name: exapg-init-scripts
+          defaultMode: 0755
+      - name: ssl-certs
+        secret:
+          secretName: exapg-ssl-secret
+          items:
+          - key: tls.crt
+            path: postgresql.crt
+          - key: ca.crt
+            path: root.crt
+          defaultMode: 0644
+      - name: ssl-private
+        secret:
+          secretName: exapg-ssl-secret
+          items:
+          - key: tls.key
+            path: postgresql.key
+          defaultMode: 0600
+      - name: postgres-logs
+        emptyDir: {}
+  
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd # Anpassen je nach Storage Class
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+# Service für Worker1
+apiVersion: v1
+kind: Service
+metadata:
+  name: exapg-worker1
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/instance: worker1
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/instance: worker1
+  type: ClusterIP
+
+---
+# Worker1 StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: exapg-worker1
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/instance: worker1
+    app.kubernetes.io/part-of: exapg-database
+spec:
+  serviceName: exapg-worker1
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exapg
+      app.kubernetes.io/component: worker
+      app.kubernetes.io/instance: worker1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exapg
+        app.kubernetes.io/component: worker
+        app.kubernetes.io/instance: worker1
+        app.kubernetes.io/part-of: exapg-database
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5432"
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+      - name: postgres
+        image: exapg:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: postgres
+          containerPort: 5432
+          protocol: TCP
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_DB
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: HOSTNAME
+          value: "exapg-worker1"
+        
+        # Performance Configuration (Worker-optimiert)
+        - name: POSTGRES_SHARED_BUFFERS
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: shared_buffers
+        - name: POSTGRES_WORK_MEM
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: work_mem
+        - name: POSTGRES_MAINTENANCE_WORK_MEM
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: maintenance_work_mem
+        - name: POSTGRES_MAX_WORKER_PROCESSES
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: max_parallel_workers
+        - name: POSTGRES_MAX_PARALLEL_WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: max_parallel_workers
+        - name: POSTGRES_MAX_PARALLEL_WORKERS_PER_GATHER
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: max_parallel_workers_per_gather
+        
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql-worker.conf
+        - name: postgres-config
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d/init.sh
+          subPath: init-worker.sh
+        - name: ssl-certs
+          mountPath: /etc/ssl/certs
+          readOnly: true
+        - name: ssl-private
+          mountPath: /etc/ssl/private
+          readOnly: true
+        - name: postgres-logs
+          mountPath: /var/log/postgresql
+        
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "1000m"
+          limits:
+            memory: "8Gi"
+            cpu: "4000m"
+        
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      
+      volumes:
+      - name: postgres-config
+        configMap:
+          name: exapg-postgresql-config
+          defaultMode: 0644
+      - name: init-scripts
+        configMap:
+          name: exapg-init-scripts
+          defaultMode: 0755
+      - name: ssl-certs
+        secret:
+          secretName: exapg-ssl-secret
+          items:
+          - key: tls.crt
+            path: postgresql.crt
+          - key: ca.crt
+            path: root.crt
+          defaultMode: 0644
+      - name: ssl-private
+        secret:
+          secretName: exapg-ssl-secret
+          items:
+          - key: tls.key
+            path: postgresql.key
+          defaultMode: 0600
+      - name: postgres-logs
+        emptyDir: {}
+  
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+# Service für Worker2
+apiVersion: v1
+kind: Service
+metadata:
+  name: exapg-worker2
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/instance: worker2
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/instance: worker2
+  type: ClusterIP
+
+---
+# Worker2 StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: exapg-worker2
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/instance: worker2
+    app.kubernetes.io/part-of: exapg-database
+spec:
+  serviceName: exapg-worker2
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: exapg
+      app.kubernetes.io/component: worker
+      app.kubernetes.io/instance: worker2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: exapg
+        app.kubernetes.io/component: worker
+        app.kubernetes.io/instance: worker2
+        app.kubernetes.io/part-of: exapg-database
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5432"
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+      - name: postgres
+        image: exapg:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: postgres
+          containerPort: 5432
+          protocol: TCP
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: exapg-postgres-secret
+              key: POSTGRES_DB
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: HOSTNAME
+          value: "exapg-worker2"
+        
+        # Performance Configuration (Worker-optimiert)
+        - name: POSTGRES_SHARED_BUFFERS
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: shared_buffers
+        - name: POSTGRES_WORK_MEM
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: work_mem
+        - name: POSTGRES_MAINTENANCE_WORK_MEM
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: maintenance_work_mem
+        - name: POSTGRES_MAX_WORKER_PROCESSES
+          valueFrom:
+            configMapKeyRef:
+              name: exapg-config
+              key: max_parallel_workers
+        
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql-worker.conf
+        - name: postgres-config
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d/init.sh
+          subPath: init-worker.sh
+        - name: ssl-certs
+          mountPath: /etc/ssl/certs
+          readOnly: true
+        - name: ssl-private
+          mountPath: /etc/ssl/private
+          readOnly: true
+        - name: postgres-logs
+          mountPath: /var/log/postgresql
+        
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "1000m"
+          limits:
+            memory: "8Gi"
+            cpu: "4000m"
+        
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      
+      volumes:
+      - name: postgres-config
+        configMap:
+          name: exapg-postgresql-config
+          defaultMode: 0644
+      - name: init-scripts
+        configMap:
+          name: exapg-init-scripts
+          defaultMode: 0755
+      - name: ssl-certs
+        secret:
+          secretName: exapg-ssl-secret
+          items:
+          - key: tls.crt
+            path: postgresql.crt
+          - key: ca.crt
+            path: root.crt
+          defaultMode: 0644
+      - name: ssl-private
+        secret:
+          secretName: exapg-ssl-secret
+          items:
+          - key: tls.key
+            path: postgresql.key
+          defaultMode: 0600
+      - name: postgres-logs
+        emptyDir: {}
+  
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 100Gi 

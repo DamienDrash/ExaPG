@@ -1,0 +1,70 @@
+FROM python:3.11-alpine AS base
+
+# Install system dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    curl \
+    bash \
+    sqlite \
+    dcron \
+    tzdata \
+    && rm -rf /var/cache/apk/*
+
+# Create app user
+RUN addgroup -g 1000 dashboard \
+    && adduser -D -u 1000 -G dashboard dashboard
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python requirements first for better caching
+COPY docker/requirements-dashboard.txt /app/
+RUN pip3 install --no-cache-dir -r requirements-dashboard.txt
+
+# Copy application files
+COPY pgbackrest/scripts/backup-monitoring-dashboard.py /app/app.py
+COPY pgbackrest/scripts/backup-verification.py /app/
+COPY pgbackrest/scripts/backup-notification.py /app/
+
+# Create necessary directories
+RUN mkdir -p \
+    /app/data \
+    /app/logs \
+    /app/static \
+    /app/templates \
+    /var/log/pgbackrest
+
+# Set permissions
+RUN chown -R dashboard:dashboard /app /var/log/pgbackrest
+
+# Copy entrypoint
+COPY docker/scripts/dashboard-entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
+    CMD curl -f http://localhost:8080/api/health || exit 1
+
+# Labels
+LABEL maintainer="ExaPG Team" \
+    version="1.0.0" \
+    description="Backup Monitoring Dashboard for ExaPG" \
+    com.exapg.service="backup" \
+    com.exapg.component="dashboard"
+
+# Environment variables
+ENV FLASK_APP=app.py \
+    FLASK_ENV=production \
+    PYTHONPATH=/app \
+    BACKUP_DASHBOARD_PORT=8080 \
+    BACKUP_DASHBOARD_REFRESH=300
+
+# Switch to app user
+USER dashboard
+
+# Expose port
+EXPOSE 8080
+
+# Default command
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["python3", "app.py"] 

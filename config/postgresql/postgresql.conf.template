@@ -1,0 +1,172 @@
+# ===================================================================
+# ExaPG PostgreSQL Configuration Template
+# ===================================================================
+# I18N FIX: I18N-001 - Flexible Lokalisierung
+# Date: 2024-05-24
+# ===================================================================
+
+# ===================================================================
+# BASIC CONNECTION SETTINGS
+# ===================================================================
+
+listen_addresses = '*'
+port = ${POSTGRES_PORT:-5432}
+max_connections = ${POSTGRES_MAX_CONNECTIONS:-1000}
+superuser_reserved_connections = ${POSTGRES_SUPERUSER_RESERVED_CONNECTIONS:-10}
+
+# ===================================================================
+# MEMORY SETTINGS (Environment-controlled)
+# ===================================================================
+
+shared_buffers = ${POSTGRES_SHARED_BUFFERS:-4GB}
+work_mem = ${POSTGRES_WORK_MEM:-256MB}
+maintenance_work_mem = ${POSTGRES_MAINTENANCE_WORK_MEM:-1GB}
+effective_cache_size = ${POSTGRES_EFFECTIVE_CACHE_SIZE:-12GB}
+wal_buffers = ${POSTGRES_WAL_BUFFERS:-16MB}
+
+# ===================================================================
+# INTERNATIONALIZATION & LOCALIZATION (Flexible)
+# ===================================================================
+
+# Locale settings (configurable via environment)
+lc_messages = '${EXAPG_LOCALE:-en_US.UTF-8}'
+lc_monetary = '${EXAPG_LOCALE:-en_US.UTF-8}'
+lc_numeric = '${EXAPG_LOCALE:-en_US.UTF-8}'
+lc_time = '${EXAPG_LOCALE:-en_US.UTF-8}'
+
+# Timezone (configurable)
+timezone = '${EXAPG_TIMEZONE:-UTC}'
+timezone_abbreviations = 'Default'
+
+# Character set and collation
+default_text_search_config = '${EXAPG_TEXT_SEARCH_CONFIG:-pg_catalog.english}'
+
+# Date/time input interpretation
+datestyle = '${EXAPG_DATESTYLE:-iso, ymd}'
+
+# ===================================================================
+# EXTENSION CONFIGURATION
+# ===================================================================
+
+# Preload libraries (Citus + extensions)
+shared_preload_libraries = '${POSTGRES_SHARED_PRELOAD_LIBRARIES:-citus,timescaledb,pg_stat_statements,pgaudit}'
+
+# ===================================================================
+# LOGGING CONFIGURATION
+# ===================================================================
+
+# Logging destination and format
+log_destination = '${POSTGRES_LOG_DESTINATION:-stderr}'
+logging_collector = ${POSTGRES_LOGGING_COLLECTOR:-on}
+log_directory = '${POSTGRES_LOG_DIRECTORY:-/var/log/postgresql}'
+log_filename = '${POSTGRES_LOG_FILENAME:-postgresql-%Y-%m-%d_%H%M%S.log}'
+
+# Log level and what to log
+log_min_messages = ${POSTGRES_LOG_LEVEL:-warning}
+log_min_error_statement = ${POSTGRES_LOG_MIN_ERROR_STATEMENT:-error}
+log_statement = '${POSTGRES_LOG_STATEMENT:-mod}'
+log_min_duration_statement = ${POSTGRES_LOG_MIN_DURATION_STATEMENT:-1000}
+
+# Connection logging
+log_connections = ${POSTGRES_LOG_CONNECTIONS:-on}
+log_disconnections = ${POSTGRES_LOG_DISCONNECTIONS:-on}
+log_hostname = ${POSTGRES_LOG_HOSTNAME:-off}
+
+# ===================================================================
+# SECURITY SETTINGS
+# ===================================================================
+
+# SSL configuration
+ssl = ${POSTGRES_SSL_ENABLED:-on}
+ssl_cert_file = '${POSTGRES_SSL_CERT_FILE:-/etc/ssl/certs/server.crt}'
+ssl_key_file = '${POSTGRES_SSL_KEY_FILE:-/etc/ssl/private/server.key}'
+ssl_ca_file = '${POSTGRES_SSL_CA_FILE:-}'
+ssl_prefer_server_ciphers = ${POSTGRES_SSL_PREFER_SERVER_CIPHERS:-on}
+ssl_protocols = '${POSTGRES_SSL_PROTOCOLS:-TLSv1.2,TLSv1.3}'
+
+# Password encryption
+password_encryption = ${POSTGRES_PASSWORD_ENCRYPTION:-scram-sha-256}
+
+# ===================================================================
+# PERFORMANCE TUNING
+# ===================================================================
+
+# Checkpoint settings
+checkpoint_completion_target = ${POSTGRES_CHECKPOINT_COMPLETION_TARGET:-0.9}
+checkpoint_timeout = ${POSTGRES_CHECKPOINT_TIMEOUT:-5min}
+
+# Background writer
+bgwriter_delay = ${POSTGRES_BGWRITER_DELAY:-200ms}
+bgwriter_lru_maxpages = ${POSTGRES_BGWRITER_LRU_MAXPAGES:-100}
+
+# Cost-based optimizer
+effective_io_concurrency = ${POSTGRES_EFFECTIVE_IO_CONCURRENCY:-200}
+random_page_cost = ${POSTGRES_RANDOM_PAGE_COST:-1.1}
+seq_page_cost = ${POSTGRES_SEQ_PAGE_COST:-1.0}
+
+# Parallel query settings
+max_parallel_workers = ${POSTGRES_MAX_PARALLEL_WORKERS:-8}
+max_parallel_workers_per_gather = ${POSTGRES_MAX_PARALLEL_WORKERS_PER_GATHER:-4}
+max_parallel_maintenance_workers = ${POSTGRES_MAX_PARALLEL_MAINTENANCE_WORKERS:-2}
+
+# ===================================================================
+# CITUS CONFIGURATION
+# ===================================================================
+
+# Citus settings (if running in cluster mode)
+citus.node_conninfo = '${CITUS_NODE_CONNINFO:-sslmode=require}'
+citus.use_secondary_nodes = ${CITUS_USE_SECONDARY_NODES:-never}
+citus.cluster_name = '${CITUS_CLUSTER_NAME:-exapg}'
+
+# ===================================================================
+# TIMESCALEDB CONFIGURATION
+# ===================================================================
+
+# TimescaleDB settings
+timescaledb.max_background_workers = ${TIMESCALEDB_MAX_BACKGROUND_WORKERS:-8}
+
+# ===================================================================
+# MONITORING & STATISTICS
+# ===================================================================
+
+# Statistics collection
+track_activities = ${POSTGRES_TRACK_ACTIVITIES:-on}
+track_counts = ${POSTGRES_TRACK_COUNTS:-on}
+track_io_timing = ${POSTGRES_TRACK_IO_TIMING:-on}
+track_functions = ${POSTGRES_TRACK_FUNCTIONS:-all}
+
+# Query statistics (pg_stat_statements)
+pg_stat_statements.max = ${PG_STAT_STATEMENTS_MAX:-10000}
+pg_stat_statements.track = ${PG_STAT_STATEMENTS_TRACK:-all}
+
+# ===================================================================
+# DEVELOPMENT & DEBUGGING (Optional)
+# ===================================================================
+
+# Debug settings (disabled in production)
+log_parser_stats = ${POSTGRES_LOG_PARSER_STATS:-off}
+log_planner_stats = ${POSTGRES_LOG_PLANNER_STATS:-off}
+log_executor_stats = ${POSTGRES_LOG_EXECUTOR_STATS:-off}
+log_statement_stats = ${POSTGRES_LOG_STATEMENT_STATS:-off}
+
+# ===================================================================
+# CUSTOM SETTINGS
+# ===================================================================
+
+# Application-specific settings
+application_name = '${POSTGRES_APPLICATION_NAME:-ExaPG}'
+cluster_name = '${POSTGRES_CLUSTER_NAME:-exapg-cluster}'
+
+# ===================================================================
+# NOTES:
+# ===================================================================
+# This template supports internationalization through environment variables:
+# - EXAPG_LOCALE: System locale (default: en_US.UTF-8)
+# - EXAPG_TIMEZONE: Timezone (default: UTC)  
+# - EXAPG_LANGUAGE: UI language (default: en)
+# - EXAPG_TEXT_SEARCH_CONFIG: Full-text search config
+# - EXAPG_DATESTYLE: Date formatting style
+#
+# To customize for different regions:
+# EXAPG_LOCALE=de_DE.UTF-8 EXAPG_TIMEZONE=Europe/Berlin docker-compose up
+# =================================================================== 

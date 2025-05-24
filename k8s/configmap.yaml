@@ -1,0 +1,475 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: exapg-config
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: config
+data:
+  # Environment configuration
+  deployment_mode: "cluster"
+  worker_count: "2"
+  coordinator_port: "5432"
+  worker_port_start: "5433"
+  
+  # PostgreSQL memory settings
+  shared_buffers: "4GB"
+  work_mem: "1GB"
+  maintenance_work_mem: "2GB"
+  
+  # Parallel processing settings
+  max_parallel_workers: "16"
+  max_parallel_workers_per_gather: "8"
+  parallel_setup_cost: "100"
+  parallel_tuple_cost: "0.01"
+  effective_io_concurrency: "200"
+  
+  # JIT settings
+  jit: "on"
+  jit_above_cost: "50000"
+  jit_inline_above_cost: "100000"
+  jit_optimize_above_cost: "200000"
+  
+  # Query optimization
+  enable_hashagg: "on"
+  enable_hashjoin: "on"
+  enable_material: "on"
+  enable_nestloop: "on"
+  enable_parallel_append: "on"
+  enable_parallel_hash: "on"
+  min_parallel_table_scan_size: "8MB"
+  min_parallel_index_scan_size: "512kB"
+  
+  # Citus settings
+  citus_enable_columnar: "true"
+  columnar_compression: "pglz"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: exapg-postgresql-config
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: postgresql-config
+data:
+  postgresql-coordinator.conf: |
+    # ===================================================================
+    # ExaPG PostgreSQL Coordinator Configuration for Kubernetes
+    # ===================================================================
+    
+    # Basic settings
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 200
+    
+    # Memory settings (will be overridden by environment)
+    shared_buffers = 4GB
+    work_mem = 1GB
+    maintenance_work_mem = 2GB
+    effective_cache_size = 12GB
+    
+    # WAL settings
+    wal_level = replica
+    max_wal_size = 4GB
+    min_wal_size = 1GB
+    checkpoint_completion_target = 0.9
+    
+    # Logging
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = '/var/log/postgresql'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_min_messages = warning
+    log_min_error_statement = error
+    log_min_duration_statement = 1000
+    log_checkpoints = on
+    log_connections = on
+    log_disconnections = on
+    log_lock_waits = on
+    log_statement = 'none'
+    log_temp_files = 0
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+    
+    # SSL/TLS Configuration
+    ssl = on
+    ssl_cert_file = '/etc/ssl/certs/postgresql.crt'
+    ssl_key_file = '/etc/ssl/private/postgresql.key'
+    ssl_ca_file = '/etc/ssl/certs/root.crt'
+    ssl_prefer_server_ciphers = on
+    ssl_protocols = 'TLSv1.2,TLSv1.3'
+    
+    # Shared preload libraries
+    shared_preload_libraries = 'citus,timescaledb,pg_stat_statements'
+    
+    # Citus configuration
+    citus.node_hostname = 'exapg-coordinator'
+    
+    # Performance optimizations
+    random_page_cost = 1.1
+    seq_page_cost = 1.0
+    effective_io_concurrency = 200
+    
+    # Parallel processing
+    max_worker_processes = 16
+    max_parallel_workers = 16
+    max_parallel_workers_per_gather = 8
+    max_parallel_maintenance_workers = 4
+    parallel_setup_cost = 100
+    parallel_tuple_cost = 0.01
+    
+    # JIT
+    jit = on
+    jit_above_cost = 50000
+    jit_inline_above_cost = 100000
+    jit_optimize_above_cost = 200000
+    
+    # Query optimization
+    enable_hashagg = on
+    enable_hashjoin = on
+    enable_material = on
+    enable_nestloop = on
+    enable_parallel_append = on
+    enable_parallel_hash = on
+    min_parallel_table_scan_size = 8MB
+    min_parallel_index_scan_size = 512kB
+    
+    # Statistics
+    track_counts = on
+    track_functions = all
+    track_activity_query_size = 2048
+    
+    # Autovacuum
+    autovacuum = on
+    autovacuum_max_workers = 6
+    autovacuum_naptime = 15s
+    autovacuum_vacuum_threshold = 50
+    autovacuum_analyze_threshold = 50
+    autovacuum_vacuum_scale_factor = 0.05
+    autovacuum_analyze_scale_factor = 0.02
+    autovacuum_vacuum_cost_delay = 2ms
+    autovacuum_vacuum_cost_limit = 400
+
+  postgresql-worker.conf: |
+    # ===================================================================
+    # ExaPG PostgreSQL Worker Configuration for Kubernetes
+    # ===================================================================
+    
+    # Basic settings
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 100
+    
+    # Memory settings (will be overridden by environment)
+    shared_buffers = 4GB
+    work_mem = 1GB
+    maintenance_work_mem = 2GB
+    effective_cache_size = 12GB
+    
+    # WAL settings
+    wal_level = replica
+    max_wal_size = 2GB
+    min_wal_size = 512MB
+    checkpoint_completion_target = 0.9
+    
+    # Logging
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = '/var/log/postgresql'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_min_messages = warning
+    log_min_error_statement = error
+    log_min_duration_statement = 1000
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+    
+    # SSL/TLS Configuration
+    ssl = on
+    ssl_cert_file = '/etc/ssl/certs/postgresql.crt'
+    ssl_key_file = '/etc/ssl/private/postgresql.key'
+    ssl_ca_file = '/etc/ssl/certs/root.crt'
+    ssl_prefer_server_ciphers = on
+    ssl_protocols = 'TLSv1.2,TLSv1.3'
+    
+    # Shared preload libraries
+    shared_preload_libraries = 'citus,timescaledb,pg_stat_statements'
+    
+    # Performance optimizations
+    random_page_cost = 1.1
+    seq_page_cost = 1.0
+    effective_io_concurrency = 200
+    
+    # Parallel processing
+    max_worker_processes = 16
+    max_parallel_workers = 16
+    max_parallel_workers_per_gather = 8
+    max_parallel_maintenance_workers = 2
+    parallel_setup_cost = 100
+    parallel_tuple_cost = 0.01
+    
+    # JIT
+    jit = on
+    jit_above_cost = 50000
+    jit_inline_above_cost = 100000
+    jit_optimize_above_cost = 200000
+    
+    # Query optimization
+    enable_hashagg = on
+    enable_hashjoin = on
+    enable_parallel_append = on
+    enable_parallel_hash = on
+    
+    # Statistics
+    track_counts = on
+    track_functions = all
+    track_activity_query_size = 2048
+    
+    # Autovacuum
+    autovacuum = on
+    autovacuum_max_workers = 3
+    autovacuum_naptime = 30s
+
+  pg_hba.conf: |
+    # ===================================================================
+    # ExaPG pg_hba.conf - PostgreSQL Client Authentication Configuration
+    # ===================================================================
+    # SECURITY FIX: Removed dangerous 'trust' authentication
+    # Date: 2024-05-24
+    # 
+    # Connection security rules (most restrictive first):
+    #   1. SSL connections preferred for all external access
+    #   2. Certificate-based authentication for internal cluster communication
+    #   3. MD5 password authentication for application connections
+    #   4. Local connections use peer authentication
+    # ===================================================================
+    
+    # Local connections
+    local   all             postgres                                peer
+    local   all             all                                     peer
+    
+    # SSL connections (preferred)
+    hostssl all             all             10.0.0.0/8              md5
+    hostssl all             all             172.16.0.0/12           md5
+    hostssl all             all             192.168.0.0/16          md5
+    
+    # Internal cluster communication (certificate-based)
+    hostssl postgres        postgres        exapg-coordinator.exapg.svc.cluster.local      cert
+    hostssl postgres        postgres        exapg-worker1.exapg.svc.cluster.local         cert
+    hostssl postgres        postgres        exapg-worker2.exapg.svc.cluster.local         cert
+    
+    # Internal cluster communication (password fallback)
+    host    postgres        postgres        10.0.0.0/8              md5
+    host    postgres        postgres        172.16.0.0/12           md5
+    host    postgres        postgres        192.168.0.0/16          md5
+    
+    # Application connections
+    host    all             all             10.0.0.0/8              md5
+    host    all             all             172.16.0.0/12           md5
+    host    all             all             192.168.0.0/16          md5
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: exapg-init-scripts
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: init-scripts
+data:
+  init-coordinator.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Initializing ExaPG Coordinator..."
+    
+    # Create Citus extension
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        CREATE EXTENSION IF NOT EXISTS citus;
+        CREATE EXTENSION IF NOT EXISTS timescaledb;
+        CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+        CREATE EXTENSION IF NOT EXISTS vector;
+        
+        -- Configure as coordinator
+        SELECT citus_set_coordinator_host('exapg-coordinator.exapg.svc.cluster.local', 5432);
+    EOSQL
+    
+    echo "ExaPG Coordinator initialization completed."
+  
+  init-worker.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Initializing ExaPG Worker: $HOSTNAME..."
+    
+    # Wait for coordinator to be ready
+    until pg_isready -h exapg-coordinator.exapg.svc.cluster.local -p 5432; do
+        echo "Waiting for coordinator to be ready..."
+        sleep 2
+    done
+    
+    # Create Citus extension
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        CREATE EXTENSION IF NOT EXISTS citus;
+        CREATE EXTENSION IF NOT EXISTS timescaledb;
+        CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+        CREATE EXTENSION IF NOT EXISTS vector;
+    EOSQL
+    
+    echo "ExaPG Worker $HOSTNAME initialization completed."
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: exapg-monitoring-config
+  namespace: exapg
+  labels:
+    app.kubernetes.io/name: exapg
+    app.kubernetes.io/component: monitoring-config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'exapg-k8s'
+        environment: 'kubernetes'
+    
+    rule_files:
+      - "/etc/prometheus/rules/*.yml"
+    
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - alertmanager:9093
+    
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+      
+      - job_name: 'postgres-exporter'
+        static_configs:
+          - targets: 
+            - 'exapg-postgres-exporter:9187'
+        scrape_interval: 30s
+        metrics_path: /metrics
+      
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - exapg
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: exapg-node-exporter
+      
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - exapg
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'localhost:587'
+      smtp_from: 'exapg-alerts@localhost'
+    
+    route:
+      group_by: ['alertname']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'web.hook'
+    
+    receivers:
+      - name: 'web.hook'
+        webhook_configs:
+          - url: 'http://127.0.0.1:5001/'
+    
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'dev', 'instance']
+
+  postgres-exporter-queries.yaml: |
+    pg_stat_database:
+      query: |
+        SELECT
+          d.datname as database,
+          COALESCE(pg_stat_get_db_numbackends(d.oid), 0) as numbackends,
+          COALESCE(pg_stat_get_db_xact_commit(d.oid), 0) as xact_commit,
+          COALESCE(pg_stat_get_db_xact_rollback(d.oid), 0) as xact_rollback,
+          COALESCE(pg_stat_get_db_blocks_fetched(d.oid), 0) as blks_read,
+          COALESCE(pg_stat_get_db_blocks_hit(d.oid), 0) as blks_hit,
+          COALESCE(pg_stat_get_db_tuples_returned(d.oid), 0) as tup_returned,
+          COALESCE(pg_stat_get_db_tuples_fetched(d.oid), 0) as tup_fetched,
+          COALESCE(pg_stat_get_db_tuples_inserted(d.oid), 0) as tup_inserted,
+          COALESCE(pg_stat_get_db_tuples_updated(d.oid), 0) as tup_updated,
+          COALESCE(pg_stat_get_db_tuples_deleted(d.oid), 0) as tup_deleted
+        FROM pg_database d
+        WHERE d.datname NOT IN ('template0', 'template1', 'postgres')
+      metrics:
+        - database:
+            usage: "LABEL"
+            description: "Database name"
+        - numbackends:
+            usage: "GAUGE"
+            description: "Number of backends currently connected to this database"
+        - xact_commit:
+            usage: "COUNTER"
+            description: "Number of transactions in this database that have been committed"
+        - xact_rollback:
+            usage: "COUNTER" 
+            description: "Number of transactions in this database that have been rolled back"
+        - blks_read:
+            usage: "COUNTER"
+            description: "Number of disk blocks read in this database"
+        - blks_hit:
+            usage: "COUNTER"
+            description: "Number of times disk blocks were found already in the buffer cache"
+        - tup_returned:
+            usage: "COUNTER"
+            description: "Number of rows returned by queries in this database"
+        - tup_fetched:
+            usage: "COUNTER"
+            description: "Number of rows fetched by queries in this database"
+        - tup_inserted:
+            usage: "COUNTER"
+            description: "Number of rows inserted by queries in this database"
+        - tup_updated:
+            usage: "COUNTER"
+            description: "Number of rows updated by queries in this database"
+        - tup_deleted:
+            usage: "COUNTER"
+            description: "Number of rows deleted by queries in this database" 
