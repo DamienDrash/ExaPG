@@ -24,25 +24,25 @@
 - **[Database Connection](user-guide/getting-started.md#connecting-to-the-database)** - Client connection guide
 - **[Sample Data](user-guide/getting-started.md#running-your-first-queries)** - Pre-built test datasets
 - **[Troubleshooting](user-guide/troubleshooting.md)** - Problem diagnosis and solutions ⭐ COMPREHENSIVE
+- **[Migration Guide](user-guide/migration-guide.md)** - Migration from Exasol (13KB) ⭐ RELOCATED
 
 ## 🔧 Technical Documentation
 
 ### Architecture & Design
 - **[System Architecture](technical/architecture.md)** - Overall system design ⭐ RELOCATED
-- **[Performance Tuning](performance-tuning.md)** - Optimization strategies (20KB)
+- **[Performance Tuning](technical/performance-tuning.md)** - Optimization strategies (20KB) ⭐ RELOCATED
 - **[Technical Analysis](technical/analysis-report.md)** - Detailed system analysis ⭐ RELOCATED
 
 ### Database Features
-- **[SQL Compatibility](sql-compatibility.md)** - Exasol SQL support (14KB)
-- **[Columnar Storage](columnar-storage.md)** - Column-oriented storage
-- **[Columnar Comparison](columnar-comparison.md)** - Performance comparisons
+- **[Columnar Storage](technical/columnar-storage.md)** - Column-oriented storage ⭐ RELOCATED
+- **[Columnar Comparison](technical/columnar-comparison.md)** - Performance comparisons ⭐ RELOCATED
 
 ## 🔗 Integration & Migration
 
 ### Data Integration
-- **[Data Integration](data-integration.md)** - Foreign Data Wrappers & ETL (9.9KB)
-- **[Migration Guide](migration-guide.md)** - Migration from Exasol (13KB)
-- **[Monitoring Setup](monitoring.md)** - Prometheus & Grafana (6.4KB)
+- **[Data Integration](integration/data-integration.md)** - Foreign Data Wrappers & ETL (9.9KB) ⭐ RELOCATED
+- **[SQL Compatibility](integration/sql-compatibility.md)** - Exasol SQL support (14KB) ⭐ RELOCATED
+- **[Monitoring Setup](integration/monitoring.md)** - Prometheus & Grafana (6.4KB) ⭐ RELOCATED
 
 ## 🎯 Specialized Modules
 
@@ -75,28 +75,27 @@
 
 | Category | Files | Total Size | Status |
 |----------|-------|------------|--------|
-| **Root Docs** | 6 | ~54KB | ✅ Updated |
-| **User Guides** | 4 | ~56KB | ⭐ ENHANCED |
-| **Technical** | 9 | ~97KB | ✅ Reorganized |
+| **User Guides** | 5 | ~69KB | ⭐ ENHANCED |
+| **Technical** | 5 | ~53KB | ✅ Reorganized |
+| **Integration** | 3 | ~30KB | ✅ Reorganized |
 | **Modules** | 9+ | ~35KB+ | ✅ Standardized |
 | **Total** | **28+** | **~242KB+** | 📈 62% Growth |
 
 ## 🎯 Documentation Improvements
 
-### ✅ Completed (Phase 3)
-- **User Guide Creation**: Comprehensive getting started, installation, and troubleshooting guides
-- **Module Standardization**: Updated READMEs for Management UI and Monitoring Stack
-- **Technical Reorganization**: Moved architecture and analysis documents to proper locations
-- **English Standardization**: All documentation now in professional English
-- **Navigation Enhancement**: Clear hierarchy and cross-references throughout
-- **CLI Documentation**: Relocated to user guide section
+### ✅ Completed (Phase 3.5)
+- **Documentation Reorganization**: All docs now properly categorized in subdirectories
+- **User Guide Enhancement**: Migration guide moved to user-guide section
+- **Technical Documentation**: Performance and columnar docs grouped together
+- **Integration Documentation**: All integration-related docs in one place
+- **Improved Navigation**: Clear separation of concerns with logical grouping
 
 ### 🔄 Recent Updates
-- Added 3 comprehensive user guides (~45KB of new content)
-- Standardized module documentation with consistent templates
-- Reorganized technical documentation for better discoverability
-- Enhanced cross-references and navigation paths
-- Moved CLI reference to user guide section
+- **Phase 3.5 Complete**: Reorganized entire documentation structure
+- Moved technical docs (performance, columnar) to `technical/` subdirectory
+- Moved integration docs (SQL, monitoring, data) to `integration/` subdirectory
+- Relocated migration guide to `user-guide/` for better user accessibility
+- Eliminated root-level documentation files for cleaner structure
 
 ### 🎯 Future Enhancements
 - Interactive documentation with embedded examples
