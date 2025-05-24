@@ -86,19 +86,19 @@ docker exec -it exapg-coordinator psql -U postgres -d exadb
 ExaPG provides flexible deployment architectures:
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Single-Node   │    │    Cluster      │    │  High-Availability│
-│                 │    │                 │    │                 │
-│ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌─────────────┐ │
+┌─────────────────┐    ┌─────────────────┐    ┌────────────────────┐
+│   Single-Node   │    │    Cluster      │    │  High-Availability │
+│                 │    │                 │    │                    │
+│ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌───────────────┐ │
 │ │ PostgreSQL  │ │    │ │ Coordinator │ │    │ │Primary+Standby│ │
 │ │   + Citus   │ │    │ │             │ │    │ │   + Patroni   │ │
 │ │+TimescaleDB │ │    │ └─────────────┘ │    │ │   + pgBouncer │ │
-│ │  + PostGIS  │ │    │ ┌─────────────┐ │    │ └─────────────┘ │
-│ │ + pgvector  │ │    │ │  Worker 1   │ │    │ ┌─────────────┐ │
-│ └─────────────┘ │    │ │  Worker 2   │ │    │ │ Monitoring  │ │
-└─────────────────┘    │ │  Worker N   │ │    │ │Stack + Alerts│ │
-                       │ └─────────────┘ │    │ └─────────────┘ │
-                       └─────────────────┘    └─────────────────┘
+│ │  + PostGIS  │ │    │ ┌─────────────┐ │    │ └───────────────┘ │
+│ │ + pgvector  │ │    │ │  Worker 1   │ │    │ ┌───────────────┐ │
+│ └─────────────┘ │    │ │  Worker 2   │ │    │ │  Monitoring   │ │
+└─────────────────┘    │ │  Worker N   │ │    │ │Stack + Alerts │ │
+                       │ └─────────────┘ │    │ └───────────────┘ │
+                       └─────────────────┘    └───────────────────┘
 ```
 
 **Core Components:**
@@ -395,6 +395,29 @@ Automated alerts for:
 
 ### Specialized Modules
 - [Benchmark Suite](benchmark/README.md) - Performance testing framework
+
+## Roadmap
+
+### Current Development (2024)
+- ✅ Enterprise Benchmark Suite (v2.0.0)
+- ✅ Professional CLI Interface
+- ✅ Complete Documentation in English
+- 🔄 CI/CD Pipeline Integration
+- 🔄 Automated Testing Framework
+
+### Future Plans
+
+**Phase 7: Enterprise Features (Q3-Q4 2024)**
+- Advanced Security (RBAC, encryption, LDAP/SAML)
+- Cloud Integration (AWS, Azure, GCP, Kubernetes)
+- Advanced Analytics (ML deployment, streaming, graph DB)
+
+**Phase 8: Performance & Scale (2025)**
+- Next-Generation Storage (native columnar engine)
+- Distributed Computing (multi-region, federation)
+- AI-Powered Optimization (auto-tuning, predictive scaling)
+
+For detailed roadmap, see [GitHub Issues](https://github.com/DamienDrash/ExaPG/issues).
 
 ## Contributing
 

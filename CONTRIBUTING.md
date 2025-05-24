@@ -106,7 +106,7 @@ We welcome various types of contributions:
 
 1. **Good First Issues**: Look for issues labeled [`good first issue`](https://github.com/DamienDrash/ExaPG/labels/good%20first%20issue)
 2. **Help Wanted**: Check [`help wanted`](https://github.com/DamienDrash/ExaPG/labels/help%20wanted) label
-3. **Current Roadmap**: Review [TODO.md](TODO.md) for planned features
+3. **Current Roadmap**: Review [README.md#roadmap](README.md#roadmap) for planned features
 4. **Performance**: Benchmark testing and optimization are always welcome
 
 ### Reporting Bugs

@@ -113,7 +113,7 @@
 
 ### Contributing
 - **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute
-- **[Development Roadmap](../TODO.md)** - Future plans
+- **[Development Roadmap](../README.md#roadmap)** - Future plans
 - **[Changelog](../CHANGELOG.md)** - Release history
 
 ### Legal

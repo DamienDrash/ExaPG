@@ -15,7 +15,7 @@ The ExaPG project now features an **extensive and well-organized documentation l
 ├── 📄 README.md (15KB, 421 lines) - ⭐ MAIN DOCUMENTATION ✅ UPDATED
 ├── 📄 CONTRIBUTING.md ⭐ NEW - Contribution guidelines
 ├── 📄 CHANGELOG.md ⭐ NEW - Release history
-├── 📄 TODO.md (4.3KB, 98 lines) - Development roadmap ✅ UPDATED
+├── 📄 RELEASES.md - Release information and download links ⭐ NEW
 ├── 📄 DOCUMENTATION_ANALYSIS.md - This document ✅ UPDATED
 ├── 📄 LICENSE (34KB) - GPL v3.0
 │
@@ -56,7 +56,7 @@ The ExaPG project now features an **extensive and well-organized documentation l
 
 | Category | Count | Total Size | Average | Growth |
 |----------|-------|------------|---------|--------|
-| **Root Documentation** | 7 | ~65KB | 9.3KB | +23% |
+| **Root Documentation** | 6 | ~61KB | 10.2KB | +18% |
 | **User Guides** | 3 | ~50KB | 16.7KB | ⭐ NEW |
 | **Technical Docs** | 9 | ~97KB | 10.8KB | +26% |
 | **Module READMEs** | 9+ | ~35KB+ | ~3.9KB | +75% |
