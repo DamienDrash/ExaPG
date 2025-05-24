@@ -376,19 +376,25 @@ Automated alerts for:
 📚 **[Complete Documentation Index](docs/INDEX.md)**
 
 ### User Guides
+- [Getting Started](docs/user-guide/getting-started.md) - Quick start tutorial
+- [Installation Guide](docs/user-guide/installation.md) - Detailed setup instructions
 - [CLI Reference](docs/user-guide/cli-reference.md) - Interactive terminal interface
-- [Migration Guide](docs/migration-guide.md) - Migrating from Exasol
-- [Performance Tuning](docs/performance-tuning.md) - Optimization strategies
+- [Migration Guide](docs/user-guide/migration-guide.md) - Migrating from Exasol
+- [Troubleshooting](docs/user-guide/troubleshooting.md) - Common issues and solutions
 
 ### Technical Documentation  
 - [Architecture Guide](docs/technical/architecture.md) - System architecture
-- [SQL Compatibility](docs/sql-compatibility.md) - Exasol SQL support
-- [Data Integration](docs/data-integration.md) - FDW and ETL processes
+- [Performance Tuning](docs/technical/performance-tuning.md) - Optimization strategies
+- [Columnar Storage](docs/technical/columnar-storage.md) - Column-oriented storage
+- [Columnar Comparison](docs/technical/columnar-comparison.md) - Performance comparisons
+
+### Integration Documentation
+- [SQL Compatibility](docs/integration/sql-compatibility.md) - Exasol SQL support
+- [Data Integration](docs/integration/data-integration.md) - FDW and ETL processes
+- [Monitoring Setup](docs/integration/monitoring.md) - Prometheus/Grafana configuration
 
 ### Specialized Modules
 - [Benchmark Suite](benchmark/README.md) - Performance testing framework
-- [Monitoring Setup](docs/monitoring.md) - Prometheus/Grafana configuration
-- [Columnar Storage](docs/columnar-storage.md) - Column-oriented storage
 
 ## Contributing
 

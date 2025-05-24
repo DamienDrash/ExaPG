@@ -352,10 +352,23 @@ echo "✅ ${TEST_NAME} completed successfully"
 ```
 docs/
 ├── INDEX.md                     # Central navigation
-├── user-guide/                  # User documentation
-├── technical/                   # Technical details
-├── integration/                 # Integration guides
-└── modules/                     # Module-specific docs
+├── user-guide/                  # User documentation (5 files)
+│   ├── getting-started.md       # Quick start tutorial
+│   ├── installation.md          # Detailed setup guide
+│   ├── cli-reference.md         # CLI documentation
+│   ├── troubleshooting.md       # Problem solving
+│   └── migration-guide.md       # Migration from Exasol
+├── technical/                   # Technical details (5 files)
+│   ├── architecture.md          # System architecture
+│   ├── analysis-report.md       # Technical analysis
+│   ├── performance-tuning.md    # Optimization guide
+│   ├── columnar-storage.md      # Columnar features
+│   └── columnar-comparison.md   # Performance comparisons
+├── integration/                 # Integration guides (3 files)
+│   ├── data-integration.md      # FDW and ETL
+│   ├── monitoring.md            # Monitoring setup
+│   └── sql-compatibility.md     # SQL compatibility
+└── images/                      # Diagrams and images
 ```
 
 ### Writing Documentation

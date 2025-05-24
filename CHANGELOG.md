@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation standardized to English throughout
 - Modern README.md with best practices structure
 - Centralized documentation index updated
+- **Documentation reorganization (Phase 3.5)**: All docs properly categorized in subdirectories
+  - User guides consolidated in `docs/user-guide/` (5 files)
+  - Technical documentation in `docs/technical/` (5 files)
+  - Integration documentation in `docs/integration/` (3 files)
+  - No files remaining in docs root (except INDEX.md)
+  - Migration guide moved from docs root to user-guide section
+
+### Fixed
+- Documentation structure inconsistencies
+- Empty directories removed (`docs/modules/`)
+- Improved navigation with logical grouping
 
 ### Planned
 - Automated CI/CD pipeline

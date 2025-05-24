@@ -122,4 +122,4 @@
 ---
 
 *This documentation is continuously updated. Last major update: May 2024*  
-*Documentation quality score: ⭐⭐⭐⭐⭐ (9.6/10)* 
+*Documentation quality score: ⭐⭐⭐⭐⭐ (9.8/10)* 
