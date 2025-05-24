@@ -135,7 +135,7 @@ ExaPG provides flexible deployment architectures:
 
 4. **Verify Installation**
    ```bash
-   ./scripts/run-all-tests.sh
+   ./scripts/performance/run-all-tests.sh
    ```
 
 ## Configuration
@@ -281,13 +281,13 @@ Enterprise deployment with automatic failover:
 
 ```bash
 # Run comprehensive test suite
-./scripts/run-all-tests.sh
+./scripts/performance/run-all-tests.sh
 
 # Individual test categories  
-./scripts/test-exapg.sh         # Core functionality
-./scripts/test-fdw.sh           # Foreign data wrappers
-./scripts/test-etl.sh           # ETL processes
-./scripts/test-performance.sh   # Performance benchmarks
+./scripts/performance/test-exapg.sh         # Core functionality
+./scripts/performance/test-fdw.sh           # Foreign data wrappers
+./scripts/performance/test-etl.sh           # ETL processes
+./scripts/performance/test-performance.sh   # Performance benchmarks
 ```
 
 ### Benchmark Suite
@@ -429,7 +429,7 @@ cd ExaPG
 git checkout -b feature/your-feature-name
 
 # Make changes and test
-./scripts/run-all-tests.sh
+./scripts/performance/run-all-tests.sh
 
 # Submit pull request
 ```
@@ -476,7 +476,7 @@ For enterprise deployments and commercial support, please contact the developmen
 2. **Performance Problems**
    ```bash
    # Run performance analysis
-   ./scripts/test-performance.sh
+   ./scripts/performance/test-performance.sh
    
    # Check monitoring dashboards
    # First ensure monitoring is running:
