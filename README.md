@@ -1,421 +1,470 @@
-# ExaPG
+# ExaPG - High-Performance PostgreSQL Analytics Platform
 
-ExaPG ist eine hochleistungsfähige, PostgreSQL-basierte Alternative zu Exasol für analytische Workloads. Die Lösung kombiniert PostgreSQL 15 mit TimescaleDB, PostGIS und pgvector und bietet sowohl Single-Node- als auch Cluster-Deployment mit Citus.
+> A PostgreSQL-based alternative to Exasol for analytical workloads, featuring columnar storage, distributed processing, and enterprise-grade scalability.
 
-## Übersicht
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![PostgreSQL 15](https://img.shields.io/badge/PostgreSQL-15-336791.svg)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-Required-2496ED.svg)](https://www.docker.com/)
 
-ExaPG wurde entwickelt, um eine kosteneffiziente, Open-Source-basierte Alternative zu proprietären analytischen Datenbanksystemen zu bieten. Das Projekt konzentriert sich auf die Bereitstellung von:
+## Table of Contents
 
-- **Hochleistungs-Analytik**: Optimiert für analytische Workloads mit Columnar Storage
-- **Skalierbarkeit**: Flexible Deployment-Optionen (Single-Node oder Cluster)
-- **Umfassende Überwachung**: Integriertes Monitoring mit Prometheus und Grafana
-- **Erweiterbarkeit**: Integration mit TimescaleDB, PostGIS und pgvector
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Architecture](#architecture)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [Deployment Modes](#deployment-modes)
+- [Performance Testing](#performance-testing)
+- [Monitoring](#monitoring)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
 
-## Architektur
+## Features
 
-ExaPG kann in verschiedenen Modi bereitgestellt werden:
+**🚀 High-Performance Analytics**
+- Columnar storage with Citus Columnar for 8x compression
+- JIT compilation for complex queries
+- Parallel query processing with optimized worker configuration
 
-- **Single-Node**: Einfache Bereitstellung für kleinere Workloads
-- **Cluster-Modus**: Verteilte Verarbeitung mit Citus (1 Koordinator, mehrere Worker)
-- **FDW-Modus**: Integration mit externen Datenquellen über Foreign Data Wrapper
+**📈 Horizontal Scalability**  
+- Distributed processing with Citus (1 coordinator + multiple workers)
+- Automatic data distribution and query parallelization
+- Dynamic cluster scaling with rolling updates
 
-## Schnellstart
+**🔗 Comprehensive Data Integration**
+- Foreign Data Wrappers for PostgreSQL, MySQL, MongoDB, SQL Server, Redis
+- ETL automation with pgAgent
+- Time-series analytics with TimescaleDB
 
-```bash
-# Single-Node-Modus starten
-./start-exapg.sh
+**🎯 Advanced Analytics Extensions**
+- Geospatial analysis with PostGIS
+- Vector similarity search with pgvector  
+- Machine learning and AI workload support
 
-# Cluster-Modus starten (über .env konfigurierbar)
-DEPLOYMENT_MODE=cluster ./start-exapg.sh
+**📊 Enterprise Monitoring**
+- Real-time metrics with Prometheus
+- Pre-built Grafana dashboards
+- Automated alerting and notifications
 
-# Citus-Cluster mit optimierten Verteilungsstrategien starten
-./start-exapg-citus.sh
+**🔧 Enterprise Management**
+- Web-based cluster management UI
+- Automated backup with pgBackRest
+- High availability with automatic failover
 
-# Hochverfügbares Cluster mit automatischem Failover starten
-./start-exapg-ha.sh
-
-# Cluster-Management mit automatischer Cluster-Erweiterung starten
-./start-cluster-management.sh
-
-# Monitoring-Stack starten
-./start-monitoring.sh
-```
-
-## Komponenten
-
-- **PostgreSQL 15**: Basiskomponente mit analytischen Optimierungen
-- **Citus**: Für horizontale Skalierung und verteilte Abfragen
-- **TimescaleDB**: Für effiziente Zeitreihenanalyse
-- **PostGIS**: Für räumliche Datenanalyse
-- **pgvector**: Für Vektorähnlichkeitssuche und ML-Workloads
-- **Prometheus/Grafana**: Für umfassendes Monitoring
-
-## Lizenz
-
-Dieses Projekt steht unter der [GNU General Public License v3.0](LICENSE).
-
-## Funktionen
-
-- **Clustering und Skalierung** mit Citus für horizontale Skalierung
-- **Spaltenorientierte Speicherung** mit Citus Columnar für verbesserte analytische Performance und Datenkompression
-- **Optimierte Verteilungsstrategien** für automatische Datenverteilung auf Cluster-Knoten mit Exasol-ähnlicher Funktionalität
-- **Automatische Cluster-Erweiterung** mit dynamischem Hinzufügen/Entfernen von Knoten und Rolling-Updates ohne Ausfallzeit
-- **Umfassende Datenintegration** mit Foreign Data Wrappers und ETL-Automatisierung
-- **Zeitreihenanalyse** mit TimescaleDB für effiziente Speicherung und Abfrage von Zeitreihendaten
-- **Räumliche Daten** mit PostGIS für Geodaten-Analyse
-- **Vektorähnlichkeitssuche** mit pgvector für Machine Learning und KI-Anwendungen
-- **Optimierte Konfiguration** für analytische Workloads mit angepassten Speicher- und Leistungseinstellungen
-- **Monitoring und Verwaltung** mit Prometheus und Grafana für Echtzeitüberwachung und Benachrichtigungen
-
-## Systemvoraussetzungen
-
-- Docker (Version 19.03 oder höher)
-- Docker Compose (Version 1.27 oder höher)
-- Mindestens 8 GB RAM für den Single-Node-Modus
-- Mindestens 16 GB RAM für den Cluster-Modus
-
-## Testen der Installation
-
-ExaPG verfügt über umfassende Testskripte, um die korrekte Funktionalität sicherzustellen:
+## Quick Start
 
 ```bash
-# Führt alle Tests aus
-./scripts/run-all-tests.sh
+# Clone repository
+git clone https://github.com/DamienDrash/ExaPG.git
+cd ExaPG
 
-# Einzelne Testbereiche
-./scripts/test-exapg.sh       # Grundfunktionalität
-./scripts/test-fdw.sh         # Foreign Data Wrapper
-./scripts/test-etl.sh         # ETL-Prozesse
-./scripts/test-performance.sh # Leistungstests (small, medium, large)
+# Start single-node deployment
+./scripts/cli/exapg-cli.sh
+
+# Or use direct startup scripts
+./start-exapg.sh                    # Single-node mode
+./start-exapg-citus.sh             # Cluster mode (3 nodes)
+./start-cluster-management.sh      # With management UI
+./start-monitoring.sh              # Add monitoring stack
 ```
 
-Die Tests überprüfen:
-- Korrekte Installation aller Komponenten und Erweiterungen
-- Funktionalität der Foreign Data Wrapper und Datenintegration
-- ETL-Prozesse und Datentransformationen
-- Leistung bei analytischen Workloads
-
-Für Leistungstests können Sie die Datenmenge anpassen:
-```bash
-./scripts/test-performance.sh small  # 10.000 Datensätze
-./scripts/test-performance.sh medium # 100.000 Datensätze
-./scripts/test-performance.sh large  # 1.000.000 Datensätze
-```
-
-## Deployment-Modi
-
-### Single-Node-Modus
-
-- Geeignet für Entwicklung, Tests und kleinere Produktivumgebungen
-- Alle Erweiterungen auf einem einzelnen PostgreSQL-Server
-- Geringere Hardware-Anforderungen
-
-### Cluster-Modus
-
-- Horizontale Skalierung über mehrere Knoten
-- Ein Koordinator-Knoten und mehrere Worker-Knoten
-- Datenverteilung für parallele Verarbeitung
-- Höhere Leistung für große Datenmengen und komplexe Abfragen
-
-## Konfiguration
-
-Die Konfiguration erfolgt über die `.env`-Datei. Wichtige Parameter:
-
-| Parameter | Beschreibung | Standardwert |
-|-----------|--------------|--------------|
-| `DEPLOYMENT_MODE` | Deployment-Modus (`single` oder `cluster`) | `single` |
-| `WORKER_COUNT` | Anzahl der Worker-Knoten im Cluster-Modus | `2` |
-| `COORDINATOR_MEMORY_LIMIT` | Speicherlimit für den Koordinator | `8g` |
-| `WORKER_MEMORY_LIMIT` | Speicherlimit für Worker-Knoten | `8g` |
-| `SHARED_BUFFERS` | PostgreSQL shared_buffers | `2GB` |
-| `WORK_MEM` | PostgreSQL work_mem | `128MB` |
-| `POSTGRES_PORT` | Port für PostgreSQL | `5432` |
-
-## Verbinden mit der Datenbank
-
-Nach dem Start können Sie sich mit der Datenbank verbinden:
-
+**Connect to Database:**
 ```bash
 docker exec -it exapg-coordinator psql -U postgres -d exadb
 ```
 
-Oder mit einem externen PostgreSQL-Client:
+**Access Web Interfaces:**
+- Cluster Management: http://localhost:8080
+- Grafana Monitoring: http://localhost:3000 (admin/exapg_admin)
+- Prometheus: http://localhost:9090
 
-- Host: localhost
-- Port: 5432 (oder wie in `.env` konfiguriert)
-- Benutzer: postgres
-- Passwort: postgres
-- Datenbank: exadb
+## Architecture
 
-## Beispieltabellen
+ExaPG provides flexible deployment architectures:
 
-Die folgenden Beispieltabellen werden automatisch erstellt:
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Single-Node   │    │    Cluster      │    │  High-Availability│
+│                 │    │                 │    │                 │
+│ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌─────────────┐ │
+│ │ PostgreSQL  │ │    │ │ Coordinator │ │    │ │Primary+Standby│ │
+│ │   + Citus   │ │    │ │             │ │    │ │   + Patroni   │ │
+│ │+TimescaleDB │ │    │ └─────────────┘ │    │ │   + pgBouncer │ │
+│ │  + PostGIS  │ │    │ ┌─────────────┐ │    │ └─────────────┘ │
+│ │ + pgvector  │ │    │ │  Worker 1   │ │    │ ┌─────────────┐ │
+│ └─────────────┘ │    │ │  Worker 2   │ │    │ │ Monitoring  │ │
+└─────────────────┘    │ │  Worker N   │ │    │ │Stack + Alerts│ │
+                       │ └─────────────┘ │    │ └─────────────┘ │
+                       └─────────────────┘    └─────────────────┘
+```
 
-- `analytics.sensor_data` - Zeitreihendaten für Sensormessungen
-- `analytics.sales` - Verkaufsdaten
-- `analytics.document_embeddings` - Vektordaten für Ähnlichkeitssuche
-- `analytics.locations` - Räumliche Daten mit PostGIS
+**Core Components:**
+- **PostgreSQL 15**: Base database with analytical optimizations
+- **Citus**: Horizontal scaling and distributed queries  
+- **TimescaleDB**: Efficient time-series storage and analysis
+- **PostGIS**: Geospatial data processing
+- **pgvector**: Vector similarity search for ML workloads
+- **Prometheus/Grafana**: Comprehensive monitoring and alerting
 
-## Fehlerbehebung
+## Installation
 
-Bei Problemen überprüfen Sie die Logs:
+### System Requirements
+
+- **Docker**: Version 19.03 or higher
+- **Docker Compose**: Version 1.27 or higher  
+- **Memory**: Minimum 8GB RAM (single-node), 16GB+ (cluster)
+- **Storage**: SSD recommended for optimal performance
+- **Network**: Ports 5432, 8080, 3000, 9090 available
+
+### Installation Steps
+
+1. **Clone Repository**
+   ```bash
+   git clone https://github.com/DamienDrash/ExaPG.git
+   cd ExaPG
+   ```
+
+2. **Configure Environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env file with your settings
+   ```
+
+3. **Start ExaPG**
+   ```bash
+   # Interactive CLI (recommended)
+   ./scripts/cli/exapg-cli.sh
+   
+   # Or direct deployment
+   ./start-exapg.sh
+   ```
+
+4. **Verify Installation**
+   ```bash
+   ./scripts/run-all-tests.sh
+   ```
+
+## Configuration
+
+### Environment Variables
+
+Configure ExaPG through the `.env` file:
+
+| Parameter | Description | Default | Options |
+|-----------|-------------|---------|---------|
+| `DEPLOYMENT_MODE` | Deployment architecture | `single` | `single`, `cluster`, `ha` |
+| `WORKER_COUNT` | Number of worker nodes | `2` | `1-10` |
+| `COORDINATOR_MEMORY_LIMIT` | Coordinator memory limit | `8g` | `4g`, `8g`, `16g`, `32g` |
+| `WORKER_MEMORY_LIMIT` | Worker memory limit | `8g` | `4g`, `8g`, `16g`, `32g` |
+| `SHARED_BUFFERS` | PostgreSQL shared buffers | `2GB` | `1GB-8GB` |
+| `WORK_MEM` | PostgreSQL work memory | `128MB` | `64MB-1GB` |
+| `POSTGRES_PORT` | PostgreSQL port | `5432` | `1024-65535` |
+
+### Performance Tuning
+
+**For analytical workloads:**
+```env
+# High-performance analytics configuration
+SHARED_BUFFERS=4GB
+WORK_MEM=256MB
+MAINTENANCE_WORK_MEM=1GB
+EFFECTIVE_CACHE_SIZE=12GB
+RANDOM_PAGE_COST=1.1
+```
+
+**For time-series workloads:**
+```env
+# TimescaleDB optimizations
+TIMESCALEDB_TELEMETRY=off
+MAX_CONNECTIONS=200
+CHECKPOINT_COMPLETION_TARGET=0.9
+```
+
+## Usage
+
+### Interactive CLI
+
+The recommended way to manage ExaPG:
 
 ```bash
-docker-compose logs coordinator
-docker-compose logs worker1
+./scripts/cli/exapg-cli.sh
 ```
 
-## Produktionsempfehlungen
+Features:
+- Start/stop all deployment modes
+- Real-time status monitoring  
+- Benchmark suite execution
+- Log viewing and troubleshooting
+- Configuration management
 
-Für den Produktiveinsatz beachten Sie:
+### Database Connection
 
-1. Ändern Sie die Standard-Passwörter in der `.env`-Datei
-2. Passen Sie die Speichereinstellungen an Ihre Hardware an
-3. Aktivieren Sie SSL für Verbindungen
-4. Konfigurieren Sie regelmäßige Backups
-5. Überwachen Sie die Systemressourcen und PostgreSQL-Metriken
+**Using Docker:**
+```bash
+docker exec -it exapg-coordinator psql -U postgres -d exadb
+```
 
-## Vergleich mit Exasol
+**External Client:**
+- Host: `localhost`
+- Port: `5432` 
+- Username: `postgres`
+- Password: `postgres`
+- Database: `exadb`
 
-| Funktion | ExaPG | Exasol |
-|----------|-------|--------|
-| Spaltenorientierte Speicherung | Ja (via Citus Columnar) | Vollständig |
-| In-Memory-Verarbeitung | Teilweise | Vollständig |
-| Clustering | Ja (via Citus) | Ja |
-| Automatische Datenverteilung | Ja (optimierte Strategien) | Ja |
-| Virtuelle Schemas | Ja (via Foreign Data Wrappers) | Ja |
-| Datenintegration | Umfassend (vielfältige FDWs) | Begrenzt (JDBC-basiert) |
-| ETL-Automatisierung | Ja (pgAgent) | Ja (eigene Scheduler) |
-| SQL-Unterstützung | ANSI SQL | Exasol SQL (ANSI-Erweiterung) |
-| OLAP-Funktionen | Ja | Ja |
-| Erweiterbarkeit | Sehr hoch | Begrenzt |
-| Ökosystem | Umfangreich | Proprietär |
-| Kompressionsraten | Hoch (bis zu 8x) | Sehr hoch (10-15x) |
+### Sample Data and Queries
 
-## Datenintegration
-
-ExaPG bietet umfassende Datenintegrationsfunktionen:
-
-- **Foreign Data Wrappers** für den Zugriff auf verschiedene Datenquellen:
-  - PostgreSQL, MySQL, MongoDB, SQL Server, SQLite, Redis und mehr
-  - Zugriff auf CSV- und Textdateien
-  - Virtuelle Views über mehrere Datenquellen
-
-- **ETL-Automatisierung** mit pgAgent:
-  - Zeitgesteuerte Ausführung von ETL-Prozessen
-  - Robustes Fehlerbehandlung und Protokollierung
-  - Inkrementelle und vollständige Datenaktualisierungen
+ExaPG includes pre-loaded sample tables:
 
 ```sql
--- Beispiel für eine FDW-Verbindung zu MySQL
-CREATE SERVER mysql_server
-  FOREIGN DATA WRAPPER mysql_fdw
-  OPTIONS (host 'mysql_server', port '3306');
+-- Time-series sensor data
+SELECT * FROM analytics.sensor_data LIMIT 10;
 
--- Beispiel für eine ETL-Prozedur
-CREATE PROCEDURE etl.load_customers()
-LANGUAGE plpgsql AS $$
-BEGIN
-    -- ETL-Logik hier
-END;
-$$;
+-- Sales analytics with columnar storage  
+SELECT 
+    date_trunc('month', sale_date) as month,
+    SUM(amount) as total_sales
+FROM analytics.sales 
+GROUP BY 1 ORDER BY 1;
+
+-- Vector similarity search
+SELECT document_id, content 
+FROM analytics.document_embeddings 
+ORDER BY embedding <-> '[0.1,0.2,0.3]'::vector
+LIMIT 5;
+
+-- Geospatial queries
+SELECT name, ST_Distance(location, ST_MakePoint(-122.4194, 37.7749)) as distance
+FROM analytics.locations
+ORDER BY distance LIMIT 10;
 ```
 
-Weitere Details finden Sie in der [Datenintegrationsdokumentation](docs/data-integration.md).
+## Deployment Modes
 
-## Spaltenorientierte Speicherung
+### Single-Node Mode
 
-ExaPG nutzt Citus Columnar für spaltenorientierte Speicherung, was folgende Vorteile bietet:
+Ideal for development, testing, and smaller production environments:
 
-- **Verbesserte analytische Performance** bei Spaltenoperationen und Aggregationen
-- **Hohe Kompressionsraten** (2-8x je nach Datentyp)
-- **Effiziente Abfrageverarbeitung** für Data-Warehouse-Workloads
-- **Kombinierbar mit Clustering** für maximale Skalierbarkeit
-
-Spaltenorientierte Tabellen werden mit der Syntax `USING columnar` erstellt:
-
-```sql
-CREATE TABLE facts (
-    id BIGSERIAL,
-    time TIMESTAMPTZ NOT NULL,
-    value NUMERIC(10,2)
-) USING columnar;
+```bash
+./start-exapg.sh
 ```
 
-Weitere Details finden Sie in der [Columnar Storage Dokumentation](docs/columnar-storage.md).
+- All extensions on single PostgreSQL server
+- Lower hardware requirements
+- Simplified management
 
-## Erweiterungsmöglichkeiten
+### Cluster Mode
 
-- Integration weiterer PostgreSQL-Erweiterungen für spezifische Anwendungsfälle
-- Hinzufügen von Monitoring-Tools (z.B. Prometheus, Grafana)
-- Implementierung automatischer Skalierung
-- Konfiguration für Cloud-Umgebungen (AWS, Azure, GCP)
+Horizontal scaling across multiple nodes:
 
-## Monitoring und Verwaltung
+```bash  
+./start-exapg-citus.sh
+```
 
-ExaPG verfügt über ein umfassendes Monitoring-System auf Basis von Prometheus und Grafana:
+- 1 coordinator + 2-10 worker nodes
+- Automatic data distribution
+- Parallel query processing
+- Higher performance for large datasets
 
-### Funktionen
+### High-Availability Mode
 
-- **Echtzeit-Metriken** für alle Datenbankkomponenten
-- **Vordefinierte Dashboards** für schnellen Überblick und Detailanalysen
-- **Automatisierte Alarme** bei kritischen Ereignissen
-- **Leistungsanalyse** für Abfragen und Datenbankoperationen
-- **Ressourcennutzung** der Cluster-Knoten im Überblick
+Enterprise deployment with automatic failover:
 
-### Starten des Monitoring-Systems
+```bash
+./start-exapg-ha.sh  
+```
 
+- Primary/standby configuration with Patroni
+- Automatic failover and recovery
+- Load balancing with pgBouncer
+- Zero-downtime maintenance
+
+## Performance Testing
+
+### Built-in Test Suite
+
+```bash
+# Run comprehensive test suite
+./scripts/run-all-tests.sh
+
+# Individual test categories  
+./scripts/test-exapg.sh         # Core functionality
+./scripts/test-fdw.sh           # Foreign data wrappers
+./scripts/test-etl.sh           # ETL processes
+./scripts/test-performance.sh   # Performance benchmarks
+```
+
+### Benchmark Suite
+
+ExaPG includes an enterprise-grade benchmark suite:
+
+```bash
+# Interactive benchmark UI
+./benchmark-suite
+
+# Direct TPC-H benchmark
+./benchmark/scripts/benchmark-tests.sh tpch
+
+# PostgreSQL OLTP benchmark
+./benchmark/scripts/benchmark-tests.sh pgbench
+
+# Custom benchmark configuration
+./benchmark/scripts/benchmark-tests.sh custom
+```
+
+**Performance Scale Options:**
+- `small`: 10,000 records (development)
+- `medium`: 100,000 records (testing)  
+- `large`: 1,000,000+ records (production)
+
+### Performance Comparison
+
+| Feature | ExaPG | Exasol | PostgreSQL |
+|---------|-------|--------|------------|
+| Columnar Storage | ✅ (Citus) | ✅ (Native) | ❌ |
+| In-Memory Processing | ⚡ (Partial) | ✅ (Full) | ❌ |
+| Horizontal Scaling | ✅ (Citus) | ✅ (Native) | ⚡ (Limited) |
+| Compression Ratio | 8x | 10-15x | 2-3x |
+| SQL Compatibility | ANSI SQL | Exasol SQL | ANSI SQL |
+| Data Integration | ✅ (FDW) | ⚡ (JDBC) | ⚡ (Limited) |
+| Open Source | ✅ | ❌ | ✅ |
+
+## Monitoring
+
+### Prometheus + Grafana Stack
+
+Start monitoring with:
 ```bash
 ./start-monitoring.sh
 ```
 
-Nach dem Start sind folgende Komponenten verfügbar:
+**Access Dashboards:**
+- Grafana: http://localhost:3000 (admin/exapg_admin)
+- Prometheus: http://localhost:9090
+- Alertmanager: http://localhost:9093
 
-- **Grafana**: http://localhost:3000 (Standard: admin/exapg_admin)
-- **Prometheus**: http://localhost:9090
-- **Alertmanager**: http://localhost:9093
+### Pre-built Dashboards
 
-### Vordefinierte Dashboards
+1. **ExaPG Overview**
+   - System status and resource utilization
+   - Database activity and connections
+   - Query performance metrics
 
-- **ExaPG Overview**: Allgemeiner Systemstatus, Ressourcennutzung, Datenbankaktivität
-- **ExaPG Analytische Leistung**: Detaillierte Leistungsmetriken für analytische Workloads
+2. **ExaPG Analytics Performance**  
+   - Analytical workload performance
+   - Columnar storage efficiency
+   - Cluster node utilization
 
-### Alarme und Benachrichtigungen
+3. **ExaPG Cluster Health**
+   - Multi-node cluster status
+   - Data distribution metrics
+   - Network and replication status
 
-Das System überwacht kritische Metriken und löst bei Bedarf Alarme aus:
+### Alerting Rules
 
-- Hohe CPU- oder Speicherauslastung
-- Speicherplatzknappheit
-- Zu viele aktive Verbindungen
-- Langsame Abfragen
-- Deadlocks oder Fehler
-- Citus-Knotenausfall
+Automated alerts for:
+- High CPU/memory utilization (>80%)
+- Storage space low (<10% free)
+- Too many connections (>80% of max)
+- Slow queries (>30 seconds)
+- Node failures or network issues
 
-Benachrichtigungen können per E-Mail oder Webhook-Integration an externe Systeme gesendet werden.
+## Documentation
 
-### Beenden des Monitoring-Systems
+📚 **[Complete Documentation Index](docs/INDEX.md)**
 
-```bash
-./stop-monitoring.sh
-```
+### User Guides
+- [CLI Reference](README-CLI.md) - Interactive terminal interface
+- [Migration Guide](docs/migration-guide.md) - Migrating from Exasol
+- [Performance Tuning](docs/performance-tuning.md) - Optimization strategies
 
-## Optimierte Verteilungsstrategien
+### Technical Documentation  
+- [Architecture Guide](README.structure.md) - System architecture
+- [SQL Compatibility](docs/sql-compatibility.md) - Exasol SQL support
+- [Data Integration](docs/data-integration.md) - FDW and ETL processes
 
-ExaPG implementiert fortschrittliche Datenverteilungsstrategien, die mit Exasol vergleichbar sind:
+### Specialized Modules
+- [Benchmark Suite](benchmark/README.md) - Performance testing framework
+- [Monitoring Setup](docs/monitoring.md) - Prometheus/Grafana configuration
+- [Columnar Storage](docs/columnar-storage.md) - Column-oriented storage
 
-### Hauptfunktionen
+## Contributing
 
-- **Automatische Shardverteilung**: Optimale Verteilung auf Cluster-Knoten basierend auf Datenstatistiken
-- **Intelligente Schlüsselauswahl**: Automatische Ermittlung der besten Verteilungsspalte
-- **Adaptives Rebalancing**: Automatische Neuverteilung bei Last-Ungleichgewichten
-- **Kolokatierte Tabellen**: Automatische Kolokation verwandter Tabellen für effiziente Joins
-- **Referenztabellenreplikation**: Kleine Tabellen werden auf allen Knoten repliziert für bessere Join-Performance
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-### Verwendung der Verteilungsstrategien
-
-ExaPG bietet vorgefertigte Funktionen zur optimalen Datenverteilung:
-
-```sql
--- Automatische optimale Verteilung einer Tabelle
-SELECT admin.distribute_table_optimally('public', 'sales');
-
--- Automatische Verteilung aller Tabellen im Schema
-SELECT admin.distribute_schema('analytics');
-
--- Tabellen für optimale Joins kolokieren
-SELECT admin.setup_table_colocation(
-    'public', 
-    ARRAY['customers', 'orders', 'order_items']
-);
-
--- Rebalancing nach Hinzufügen neuer Knoten
-SELECT admin.rebalance_shards();
-
--- Abfrage mit optimaler Parallelität auf verteilten Daten
-SELECT admin.execute_parallel_distributed('
-    SELECT 
-        date_trunc(''month'', order_date) as month,
-        SUM(order_amount) as total_sales
-    FROM orders
-    GROUP BY 1
-    ORDER BY 1
-');
-```
-
-### Starten des Cluster mit optimierten Verteilungsstrategien
-
-Für die Verwendung des ExaPG-Systems mit optimierten Verteilungsstrategien:
+### Development Setup
 
 ```bash
-./start-exapg-citus.sh
+# Fork and clone repository
+git clone https://github.com/YOUR-USERNAME/ExaPG.git
+cd ExaPG
+
+# Create feature branch
+git checkout -b feature/your-feature-name
+
+# Make changes and test
+./scripts/run-all-tests.sh
+
+# Submit pull request
 ```
 
-Dies startet ein 3-Knoten-Cluster (1 Coordinator, 2 Worker) mit vorkonfigurierten optimalen Verteilungsstrategien, die mit Exasol vergleichbar sind.
+### Code Standards
 
-Die automatischen Verteilungsfunktionen ermöglichen eine einfache und effiziente Verwaltung von verteilten Daten ohne manuelle Eingriffe, ähnlich wie bei Exasol.
+- Follow PostgreSQL SQL standards
+- Use consistent Docker practices
+- Include comprehensive tests
+- Update documentation
+- Add monitoring for new features
 
-## Automatische Cluster-Erweiterung
+## License
 
-ExaPG bietet ein dynamisches Cluster-Management-System, das die automatische Skalierung und Verwaltung des Clusters ermöglicht. Diese Funktionalität ist vergleichbar mit der automatischen Skalierbarkeit von Exasol.
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
-### Hauptfunktionen
+## Support
 
-- **Dynamisches Hinzufügen/Entfernen von Knoten**: Worker-Knoten können zur Laufzeit hinzugefügt oder entfernt werden
-- **Automatische Datenumverteilung**: Bei Änderungen der Cluster-Topologie werden Daten automatisch umverteilt
-- **Rolling-Updates ohne Ausfallzeit**: Aktualisierungen können durchgeführt werden, ohne den Cluster herunterzufahren
-- **Selbstheilende Mechanismen**: Automatische Wiederherstellung bei Knotenausfällen
-- **Benutzerfreundliche Web-UI**: Einfache Verwaltung des Clusters über eine Web-Oberfläche
+### Community Support
 
-### Architektur
+- **Documentation**: [docs/INDEX.md](docs/INDEX.md)
+- **Issues**: [GitHub Issues](https://github.com/DamienDrash/ExaPG/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/DamienDrash/ExaPG/discussions)
 
-Das Cluster-Management-System besteht aus folgenden Komponenten:
+### Commercial Support
 
-- **REST-API** (`scripts/cluster-management/cluster_api.py`): Python-basierte API für die Cluster-Verwaltung
-- **Docker Container** (`docker/Dockerfile.cluster-management`): Container für die API
-- **Docker Compose** (`docker/docker-compose/docker-compose.cluster-management.yml`): Definition des Cluster-Management-Stacks
-- **Web-UI** (`scripts/cluster-management/ui`): Einfache Web-Oberfläche für die Cluster-Verwaltung
+For enterprise deployments and commercial support, please contact the development team.
 
-### Starten des Cluster-Management-Systems
+### Troubleshooting
 
-Um das ExaPG Cluster-Management-System zu starten:
+**Common Issues:**
 
-```bash
-./start-cluster-management.sh
-```
+1. **Connection Issues**
+   ```bash
+   # Check container status
+   docker-compose ps
+   
+   # View logs
+   docker-compose logs coordinator
+   ```
 
-Dies startet das Cluster-Management mit einem Web-UI auf Port 8080 und einer REST-API auf Port 5000. Nach dem Start können Worker-Knoten dynamisch hinzugefügt oder entfernt werden, entweder über die Web-UI oder über die API.
+2. **Performance Problems**
+   ```bash
+   # Run performance analysis
+   ./scripts/test-performance.sh
+   
+   # Check monitoring dashboards
+   open http://localhost:3000
+   ```
 
-### API-Endpunkte
+3. **Memory Issues**
+   ```bash
+   # Adjust memory settings in .env
+   COORDINATOR_MEMORY_LIMIT=16g
+   SHARED_BUFFERS=4GB
+   ```
 
-Das Cluster-Management-System bietet folgende REST-API-Endpunkte:
+---
 
-- `GET /api/cluster/status`: Aktuellen Status des Clusters abrufen
-- `POST /api/cluster/add-worker`: Neuen Worker-Knoten zum Cluster hinzufügen
-- `POST /api/cluster/remove-worker`: Worker-Knoten aus dem Cluster entfernen
-- `POST /api/cluster/rebalance`: Datenumverteilung im Cluster manuell starten
-- `POST /api/cluster/rolling-update`: Rolling-Update des Clusters durchführen
+**ExaPG** - Democratizing high-performance analytics with open-source technology.
 
-### Beispiel für die API-Nutzung
-
-```bash
-# Cluster-Status abrufen
-curl http://localhost:5000/api/cluster/status
-
-# Neuen Worker hinzufügen
-curl -X POST http://localhost:5000/api/cluster/add-worker
-
-# Cluster rebalancieren
-curl -X POST http://localhost:5000/api/cluster/rebalance
-```
-
-Die Cluster-Erweiterung ist vollständig automatisiert und bleibt auch nach einem Neustart oder einer neuen Installation erhalten, da alle Konfigurationen persistent gespeichert werden.
-
-## Einfache Verwendung mit interaktiver CLI
-
-ExaPG verfügt über eine interaktive Terminal-Schnittstelle, die alle Start- und Stopp-Skripte ersetzt:
-
-```bash
-./exapg-cli.sh
-```
-
-Die CLI bietet ein benutzerfreundliches Menü zum Starten, Stoppen und Verwalten aller ExaPG-Komponenten. Weitere Informationen finden Sie in der [CLI-Dokumentation](README-CLI.md). 
+*Built with ❤️ by the ExaPG community* 
