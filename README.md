@@ -73,9 +73,16 @@
 git clone https://github.com/DamienDrash/ExaPG.git
 cd ExaPG
 
-# Start with interactive CLI
+# Start with modern dialog interface (recommended)
 ./exapg
+
+# Or use simple command-line mode
+./exapg simple deploy
 ```
+
+**CLI Modes:**
+- **Modern Interface**: `./exapg` - Dialog-based UI with menus and navigation
+- **Simple Mode**: `./exapg simple [command]` - Direct command-line interface
 
 **For Kubernetes deployment:**
 ```bash
@@ -89,6 +96,10 @@ kubectl port-forward -n exapg svc/exapg-coordinator 5432:5432
 
 **Connect to Database:**
 ```bash
+# Using simple mode
+./exapg simple shell
+
+# Or directly
 docker exec -it exapg-coordinator psql -U postgres -d exadb
 # Or for Kubernetes:
 kubectl exec -it -n exapg exapg-coordinator-0 -- psql -U postgres -d exadb
@@ -202,20 +213,76 @@ CHECKPOINT_COMPLETION_TARGET=0.9
 
 ## Usage
 
-### Interactive CLI
+### Modern Dialog Interface (Recommended)
 
-The recommended way to manage ExaPG:
+The modern interface provides an intuitive dialog-based experience:
 
 ```bash
 ./exapg
 ```
 
 Features:
-- Start/stop all deployment modes
+- Interactive menus with navigation
+- Theme selection and customization
 - Real-time status monitoring  
-- Benchmark suite execution
+- Integrated benchmark suite execution
 - Log viewing and troubleshooting
 - Configuration management
+- Multi-language support
+
+### Simple Command-Line Interface
+
+For automation and scripting, use the simple mode:
+
+```bash
+# Deploy analytics cluster
+./exapg simple deploy
+
+# Check status
+./exapg simple status
+
+# Connect to database
+./exapg simple shell
+
+# Stop all services
+./exapg simple stop
+
+# Run tests
+./exapg simple test
+
+# Show help
+./exapg simple help
+```
+
+### CLI Mode Selection
+
+```bash
+# Default: Modern dialog interface
+./exapg
+
+# Explicit simple mode
+./exapg simple [command]
+
+# Help for both modes
+./exapg help
+./exapg simple help
+
+# Version information
+./exapg version
+```
+
+### Alternative Tools
+
+```bash
+# Professional benchmark suite
+./benchmark-suite
+
+# Basic testing tool
+./scripts/test-exapg.sh [validate|docker|k8s]
+
+# Direct Kubernetes deployment
+cd k8s && ./deploy.sh prod --all
+```
 
 ### Database Connection
 
@@ -327,6 +394,12 @@ Kubernetes-native deployment with StatefulSets:
 ./scripts/performance/test-fdw.sh           # Foreign data wrappers
 ./scripts/performance/test-etl.sh           # ETL processes
 ./scripts/performance/test-performance.sh   # Performance benchmarks
+
+# Basic testing via CLI
+./exapg simple test                         # Simple mode testing
+./scripts/test-exapg.sh validate           # Environment validation
+./scripts/test-exapg.sh docker             # Docker functionality
+./scripts/test-exapg.sh k8s                # Kubernetes readiness
 ```
 
 ### Benchmark Suite
@@ -516,33 +589,47 @@ For enterprise deployments and commercial support, please contact the developmen
 
 **Common Issues:**
 
-1. **Connection Issues**
+1. **CLI Interface Issues**
    ```bash
-   # Check status via CLI
-   ./exapg
-   # Press 's' for detailed status
+   # If modern interface doesn't work, use simple mode
+   ./exapg simple status
+   
+   # Check CLI version and modes
+   ./exapg version
+   ./exapg help
+   
+   # For dialog installation issues:
+   sudo yum install -y dialog  # RHEL/CentOS
+   sudo apt-get install -y dialog  # Ubuntu/Debian
+   ```
+
+2. **Connection Issues**
+   ```bash
+   # Check status via simple CLI
+   ./exapg simple status
    
    # For advanced debugging:
    docker-compose ps
    docker-compose logs coordinator
    ```
 
-2. **Performance Problems**
+3. **Performance Problems**
    ```bash
    # Run performance analysis
+   ./exapg simple test
    ./scripts/performance/test-performance.sh
    
    # Check monitoring dashboards
    # First ensure monitoring is running:
-   ./exapg  # Select option 4: Monitoring Stack
+   ./exapg  # Select monitoring option
    # Then access Grafana:
    open http://localhost:3000
    ```
 
-3. **Memory Issues**
+4. **Memory Issues**
    ```bash
-   # Edit configuration through CLI:
-   ./exapg  # Press 'e' to edit .env
+   # Edit configuration through simple CLI:
+   ./exapg simple help  # Shows available commands
    
    # Or manually adjust settings in .env:
    COORDINATOR_MEMORY_LIMIT=16g

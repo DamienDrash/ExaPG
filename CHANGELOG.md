@@ -5,6 +5,62 @@ All notable changes to ExaPG will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2024-12-19
+
+### 🎯 Major CLI Enhancement - Intelligent Interface System
+
+This release introduces a revolutionary dual-mode CLI system that combines the best of both worlds: modern dialog-based interfaces and simple command-line automation.
+
+### Added
+- **Intelligent CLI System** - Unified `./exapg` command with dual modes
+  - **Modern Interface**: Dialog-based UI with menus, themes, and navigation (default)
+  - **Simple Mode**: Direct command-line interface for automation (`./exapg simple`)
+  - **Automatic Fallback**: Falls back to simple mode if dialog tools unavailable
+  - **Smart Detection**: Automatically installs dialog tools when needed
+- **Clean Project Structure** - Organized root directory
+  - Moved all test scripts to `scripts/` directory
+  - Removed clutter from root (only essential files remain)
+  - Maintained backward compatibility for all tools
+- **Enhanced User Experience**
+  - Unified help system for both modes (`./exapg help`)
+  - Consistent command structure across interfaces
+  - Improved error handling and user feedback
+
+### Changed
+- **CLI Architecture** - Complete overhaul of command-line interface
+  - `./exapg` now defaults to modern dialog interface
+  - `./exapg simple [command]` for direct command execution
+  - Removed separate `exapg-modern` and simple scripts
+- **Script Organization** - Cleaner project structure
+  - `test-exapg.sh` → `scripts/test-exapg.sh`
+  - `simple-exapg.sh` → `scripts/simple-exapg.sh` (backup)
+  - Root directory now contains only essential files
+- **Documentation Updates** - Comprehensive CLI documentation
+  - Updated README.md with dual-mode usage examples
+  - Added CLI mode selection guide
+  - Enhanced troubleshooting section
+
+### Fixed
+- **Module Loading Issues** - Resolved complex UI framework problems
+  - Fixed symlink path resolution for CLI modules
+  - Eliminated `ui_cleanup` function dependency errors
+  - Improved error handling for missing UI components
+- **User Experience** - Streamlined interface selection
+  - Automatic mode detection and fallback
+  - Clear error messages and guidance
+  - Consistent behavior across different environments
+
+### Technical Details
+- **CLI Version**: 3.1.0 with intelligent mode detection
+- **Backward Compatibility**: All existing commands still work
+- **Performance**: Faster startup and reduced complexity
+- **Reliability**: Robust fallback mechanisms for different environments
+
+### Migration Guide
+- **No Breaking Changes**: Existing usage patterns continue to work
+- **Enhanced Features**: New dual-mode system provides more options
+- **Recommended**: Use `./exapg` for interactive work, `./exapg simple` for scripts
+
 ## [3.0.0] - 2025-05-25
 
 ### 🚀 Major Release - Enterprise Production Ready
