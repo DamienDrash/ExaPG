@@ -141,12 +141,15 @@ detect_terminal_capabilities() {
     echo "$colors $has_bold $has_dim"
 }
 
-# Nord Dark Theme für Dialog - Optimiert
+# Nord Dark Theme für Dialog - FIXED VERSION
 setup_color_scheme() {
     export DIALOGRC="/tmp/exapg_dialogrc_$$"  # Eindeutiger Name mit PID
     
     # Terminal-Fähigkeiten prüfen
     read term_colors has_bold has_dim <<< "$(detect_terminal_capabilities)"
+    
+    # CRITICAL: Apply Nord terminal colors first
+    apply_nord_terminal_colors
     
     # Theme basierend auf Auswahl generieren
     case "$EXAPG_THEME" in
@@ -163,6 +166,45 @@ setup_color_scheme() {
             generate_nord_dark_theme > "$DIALOGRC"
             ;;
     esac
+    
+    # CRITICAL: Force dialog to use colors
+    export DIALOGOPTS="--colors --no-shadow"
+    export DIALOG_EXTRA_ARGS="--colors"
+    
+    # Debug output
+    echo "🎨 Nord Theme Setup:" >&2
+    echo "  DIALOGRC: $DIALOGRC" >&2
+    echo "  Theme: $EXAPG_THEME" >&2
+    echo "  Colors: $(tput colors)" >&2
+}
+
+# Apply Nord colors to terminal
+apply_nord_terminal_colors() {
+    # Only apply if terminal supports 256 colors
+    if [ "$(tput colors 2>/dev/null || echo 8)" -ge 256 ]; then
+        # Terminal-Hintergrund und -Vordergrund
+        printf '\033]11;#2E3440\007'  # Nord0 Background
+        printf '\033]10;#D8DEE9\007'  # Nord4 Foreground
+        printf '\033]12;#88C0D0\007'  # Nord8 Cursor
+        
+        # 16-Farben-Palette auf Nord umstellen
+        printf '\033]4;0;#3B4252\007'   # black -> nord1
+        printf '\033]4;1;#BF616A\007'   # red -> nord11
+        printf '\033]4;2;#A3BE8C\007'   # green -> nord14
+        printf '\033]4;3;#EBCB8B\007'   # yellow -> nord13
+        printf '\033]4;4;#5E81AC\007'   # blue -> nord10
+        printf '\033]4;5;#B48EAD\007'   # magenta -> nord15
+        printf '\033]4;6;#88C0D0\007'   # cyan -> nord8
+        printf '\033]4;7;#E5E9F0\007'   # white -> nord5
+        printf '\033]4;8;#4C566A\007'   # bright black -> nord3
+        printf '\033]4;9;#D08770\007'   # bright red -> nord12
+        printf '\033]4;10;#A3BE8C\007'  # bright green -> nord14
+        printf '\033]4;11;#EBCB8B\007'  # bright yellow -> nord13
+        printf '\033]4;12;#81A1C1\007'  # bright blue -> nord9
+        printf '\033]4;13;#B48EAD\007'  # bright magenta -> nord15
+        printf '\033]4;14;#8FBCBB\007'  # bright cyan -> nord7
+        printf '\033]4;15;#ECEFF4\007'  # bright white -> nord6
+    fi
 }
 
 # Nord Dark Theme Generator
@@ -2220,3 +2262,96 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
     # test_dialog_exit_codes
     main "$@"
 fi 
+# Enhanced Nord Theme Auto-Load
+if [ ! -f "/tmp/enhanced_nord_theme" ]; then
+    # Erstelle Enhanced Theme falls nicht vorhanden
+    cat > /tmp/enhanced_nord_theme << 'ENHANCED_EOF'
+use_colors = ON
+use_shadow = ON
+screen_color = (WHITE,BLACK,OFF)
+dialog_color = (WHITE,BLACK,OFF)
+shadow_color = (BLACK,BLACK,ON)
+title_color = (CYAN,BLACK,ON)
+border_color = (CYAN,BLACK,ON)
+border2_color = (BLUE,BLACK,ON)
+button_active_color = (BLACK,GREEN,ON)
+button_inactive_color = (CYAN,BLACK,OFF)
+button_key_active_color = (BLACK,YELLOW,ON)
+button_key_inactive_color = (YELLOW,BLACK,ON)
+button_label_active_color = (BLACK,GREEN,ON)
+button_label_inactive_color = (CYAN,BLACK,OFF)
+menubox_color = (WHITE,BLACK,OFF)
+menubox_border_color = (CYAN,BLACK,ON)
+menubox_border2_color = (BLUE,BLACK,ON)
+item_color = (WHITE,BLACK,OFF)
+item_selected_color = (BLACK,CYAN,ON)
+tag_color = (YELLOW,BLACK,ON)
+tag_selected_color = (BLACK,YELLOW,ON)
+tag_key_color = (YELLOW,BLACK,ON)
+tag_key_selected_color = (BLACK,YELLOW,ON)
+inputbox_color = (WHITE,BLACK,OFF)
+inputbox_border_color = (CYAN,BLACK,ON)
+inputbox_border2_color = (BLUE,BLACK,ON)
+form_active_text_color = (BLACK,CYAN,ON)
+form_text_color = (WHITE,BLACK,OFF)
+form_item_readonly_color = (BLUE,BLACK,ON)
+check_color = (WHITE,BLACK,OFF)
+check_selected_color = (BLACK,GREEN,ON)
+gauge_color = (BLACK,CYAN,ON)
+searchbox_color = (WHITE,BLACK,OFF)
+searchbox_title_color = (MAGENTA,BLACK,ON)
+searchbox_border_color = (CYAN,BLACK,ON)
+searchbox_border2_color = (BLUE,BLACK,ON)
+position_indicator_color = (GREEN,BLACK,ON)
+uarrow_color = (GREEN,BLACK,ON)
+darrow_color = (GREEN,BLACK,ON)
+itemhelp_color = (MAGENTA,BLACK,ON)
+ENHANCED_EOF
+fi
+
+# Enhanced Nord Theme Auto-Load
+if [ ! -f "/tmp/enhanced_nord_theme" ]; then
+    # Erstelle Enhanced Theme falls nicht vorhanden
+    cat > /tmp/enhanced_nord_theme << 'ENHANCED_EOF'
+use_colors = ON
+use_shadow = ON
+screen_color = (WHITE,BLACK,OFF)
+dialog_color = (WHITE,BLACK,OFF)
+shadow_color = (BLACK,BLACK,ON)
+title_color = (CYAN,BLACK,ON)
+border_color = (CYAN,BLACK,ON)
+border2_color = (BLUE,BLACK,ON)
+button_active_color = (BLACK,GREEN,ON)
+button_inactive_color = (CYAN,BLACK,OFF)
+button_key_active_color = (BLACK,YELLOW,ON)
+button_key_inactive_color = (YELLOW,BLACK,ON)
+button_label_active_color = (BLACK,GREEN,ON)
+button_label_inactive_color = (CYAN,BLACK,OFF)
+menubox_color = (WHITE,BLACK,OFF)
+menubox_border_color = (CYAN,BLACK,ON)
+menubox_border2_color = (BLUE,BLACK,ON)
+item_color = (WHITE,BLACK,OFF)
+item_selected_color = (BLACK,CYAN,ON)
+tag_color = (YELLOW,BLACK,ON)
+tag_selected_color = (BLACK,YELLOW,ON)
+tag_key_color = (YELLOW,BLACK,ON)
+tag_key_selected_color = (BLACK,YELLOW,ON)
+inputbox_color = (WHITE,BLACK,OFF)
+inputbox_border_color = (CYAN,BLACK,ON)
+inputbox_border2_color = (BLUE,BLACK,ON)
+form_active_text_color = (BLACK,CYAN,ON)
+form_text_color = (WHITE,BLACK,OFF)
+form_item_readonly_color = (BLUE,BLACK,ON)
+check_color = (WHITE,BLACK,OFF)
+check_selected_color = (BLACK,GREEN,ON)
+gauge_color = (BLACK,CYAN,ON)
+searchbox_color = (WHITE,BLACK,OFF)
+searchbox_title_color = (MAGENTA,BLACK,ON)
+searchbox_border_color = (CYAN,BLACK,ON)
+searchbox_border2_color = (BLUE,BLACK,ON)
+position_indicator_color = (GREEN,BLACK,ON)
+uarrow_color = (GREEN,BLACK,ON)
+darrow_color = (GREEN,BLACK,ON)
+itemhelp_color = (MAGENTA,BLACK,ON)
+ENHANCED_EOF
+fi
