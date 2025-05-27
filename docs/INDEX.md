@@ -1,7 +1,7 @@
 # 📚 ExaPG Documentation Index
 
 *Central navigation for all ExaPG documentation*  
-*Version: 3.2.1 | Updated: May 2025*
+*Version: 3.2.2 | Updated: May 2025*
 
 ## 🚀 Quick Start
 

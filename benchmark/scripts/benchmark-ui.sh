@@ -2,7 +2,8 @@
 # ExaPG Benchmark UI Framework v1.0 - Enterprise Performance Testing Interface
 
 # Globale Benchmark-Variablen
-BENCHMARK_VERSION="1.0.0"
+EXAPG_VERSION="3.2.2"
+BENCHMARK_VERSION="1.2.0"
 CURRENT_BENCHMARK_CONFIG=""
 BENCHMARK_SESSION_ID=""
 BENCHMARK_START_TIME=""
@@ -35,13 +36,15 @@ benchmark_navigate_to_root() {
     CURRENT_BENCHMARK_MENU="main"
 }
 
-# Professional Nord Theme für Benchmark UI (wie exapg-cli.sh)
+# Professional Nord Theme Enhanced v5.0 für Benchmark UI
 setup_benchmark_theme() {
     export DIALOGRC="/tmp/exapg_benchmark_dialogrc_$$"
     
     cat > "$DIALOGRC" << 'EOF'
-# ExaPG Benchmark Suite - Nord Dark Theme (Professional)
-# Konsistent mit ExaPG Management Console
+# ExaPG Benchmark Suite - Nord Theme Enhanced v5.0
+# Semantic Color Coding with Professional Design
+# Consistent with ExaPG Management Console v3.2.1
+
 aspect = 0
 separate_widget = ""
 tab_len = 0
@@ -49,67 +52,226 @@ visit_items = ON
 use_shadow = ON
 use_colors = ON
 
-# BASIS LAYOUT - Nord Dark
+# BASIS LAYOUT - Nord Polar Night
 screen_color = (WHITE,BLACK,OFF)
 shadow_color = (BLACK,BLACK,ON)
 dialog_color = (WHITE,BLACK,OFF)
 
-# TITEL & BORDERS - Frost Blau Theme
-title_color = (WHITE,BLUE,ON)
+# TITEL & BORDERS - Frost Cyan (Primary)
+title_color = (WHITE,CYAN,ON)
 border_color = (CYAN,BLACK,ON)
 border2_color = (BLUE,BLACK,ON)
 
-# BUTTONS - Dynamische Frost-Akzente
-button_active_color = (BLACK,CYAN,ON)
-button_inactive_color = (CYAN,BLACK,OFF)
+# BUTTONS - Semantic Color Strategy
+# Green for positive actions (OK, Start, Run)
+button_active_color = (BLACK,GREEN,ON)
+button_inactive_color = (GREEN,BLACK,OFF)
 button_key_active_color = (BLACK,WHITE,ON)
 button_key_inactive_color = (YELLOW,BLACK,ON)
-button_label_active_color = (BLACK,CYAN,ON)
-button_label_inactive_color = (CYAN,BLACK,OFF)
+button_label_active_color = (BLACK,GREEN,ON)
+button_label_inactive_color = (GREEN,BLACK,OFF)
 
-# MENU SYSTEM - Konsistente Nord-Hierarchie  
+# MENU SYSTEM - Cyan Primary Navigation
 menubox_color = (WHITE,BLACK,OFF)
 menubox_border_color = (CYAN,BLACK,ON)
 menubox_border2_color = (BLUE,BLACK,ON)
 item_color = (WHITE,BLACK,OFF)
 item_selected_color = (BLACK,CYAN,ON)
 
-# TAG SYSTEM - Aurora Gelb für Shortcuts
+# TAG SYSTEM - Yellow for Shortcuts & Attention
 tag_color = (YELLOW,BLACK,ON)
 tag_selected_color = (BLACK,YELLOW,ON)
 tag_key_color = (YELLOW,BLACK,ON)
 tag_key_selected_color = (BLACK,YELLOW,ON)
 
-# EINGABEFELDER - Saubere Nord-Aesthetik
+# EINGABEFELDER - Blue Structure Elements
 inputbox_color = (WHITE,BLACK,OFF)
-inputbox_border_color = (CYAN,BLACK,ON)
-inputbox_border2_color = (BLUE,BLACK,ON)
-form_active_text_color = (BLACK,CYAN,ON)
+inputbox_border_color = (BLUE,BLACK,ON)
+inputbox_border2_color = (CYAN,BLACK,ON)
+form_active_text_color = (BLACK,BLUE,ON)
 form_text_color = (WHITE,BLACK,OFF)
-form_item_readonly_color = (CYAN,BLACK,DIM)
+form_item_readonly_color = (BLUE,BLACK,DIM)
 
-# CHECKBOXEN & AUSWAHL - Aurora Grün für Bestätigung
+# CHECKBOXEN & AUSWAHL - Green for Success/Confirmation
 check_color = (WHITE,BLACK,OFF)
 check_selected_color = (BLACK,GREEN,ON)
 
-# PROGRESS & GAUGE - Frost Cyan für Fortschritt
+# PROGRESS & GAUGE - Cyan for Progress/Activity
 gauge_color = (BLACK,CYAN,ON)
 
-# SUCHFUNKTION - Integrierte Nord-Optik
+# SUCHFUNKTION - Magenta for Info/Special Functions
 searchbox_color = (WHITE,BLACK,OFF)
-searchbox_title_color = (WHITE,BLUE,ON)
-searchbox_border_color = (CYAN,BLACK,ON)
-searchbox_border2_color = (BLUE,BLACK,ON)
+searchbox_title_color = (WHITE,MAGENTA,ON)
+searchbox_border_color = (MAGENTA,BLACK,ON)
+searchbox_border2_color = (CYAN,BLACK,ON)
 
-# NAVIGATION - Aurora Grün für Pfeile
+# NAVIGATION - Green for Movement/Direction
 position_indicator_color = (GREEN,BLACK,ON)
 uarrow_color = (GREEN,BLACK,ON)
 darrow_color = (GREEN,BLACK,ON)
 
-# HILFE & SEKUNDÄRE ELEMENTE
+# HILFE & SEKUNDÄRE ELEMENTE - Dimmed for Secondary Info
 itemhelp_color = (WHITE,BLACK,DIM)
 
+# ERROR & WARNING DIALOGS - Red for Critical Actions
+# (These will be applied contextually in dialog calls)
+
 EOF
+
+    # Apply Nord terminal colors for enhanced experience
+    apply_nord_terminal_colors_benchmark
+}
+
+# Apply Nord color palette to terminal (Benchmark version)
+apply_nord_terminal_colors_benchmark() {
+    # Nord Color Palette Constants
+    local NORD0="#2E3440"  # Polar Night
+    local NORD1="#3B4252"  # Polar Night
+    local NORD2="#434C5E"  # Polar Night
+    local NORD3="#4C566A"  # Polar Night
+    local NORD4="#D8DEE9"  # Snow Storm
+    local NORD5="#E5E9F0"  # Snow Storm
+    local NORD6="#ECEFF4"  # Snow Storm
+    local NORD7="#8FBCBB"  # Frost
+    local NORD8="#88C0D0"  # Frost (Cyan)
+    local NORD9="#81A1C1"  # Frost
+    local NORD10="#5E81AC" # Frost (Blue)
+    local NORD11="#BF616A" # Aurora (Red)
+    local NORD12="#D08770" # Aurora
+    local NORD13="#EBCB8B" # Aurora (Yellow)
+    local NORD14="#A3BE8C" # Aurora (Green)
+    local NORD15="#B48EAD" # Aurora (Magenta)
+    
+    # Apply terminal color scheme if supported
+    if [[ "$TERM" =~ ^(xterm|screen|tmux) ]] && command -v tput >/dev/null 2>&1; then
+        # Set terminal colors for Nord theme
+        printf '\033]4;0;%s\033\\' "$NORD1"   # Black
+        printf '\033]4;1;%s\033\\' "$NORD11"  # Red
+        printf '\033]4;2;%s\033\\' "$NORD14"  # Green
+        printf '\033]4;3;%s\033\\' "$NORD13"  # Yellow
+        printf '\033]4;4;%s\033\\' "$NORD10"  # Blue
+        printf '\033]4;5;%s\033\\' "$NORD15"  # Magenta
+        printf '\033]4;6;%s\033\\' "$NORD8"   # Cyan
+        printf '\033]4;7;%s\033\\' "$NORD5"   # White
+        printf '\033]4;8;%s\033\\' "$NORD3"   # Bright Black
+        printf '\033]4;9;%s\033\\' "$NORD11"  # Bright Red
+        printf '\033]4;10;%s\033\\' "$NORD14" # Bright Green
+        printf '\033]4;11;%s\033\\' "$NORD13" # Bright Yellow
+        printf '\033]4;12;%s\033\\' "$NORD9"  # Bright Blue
+        printf '\033]4;13;%s\033\\' "$NORD15" # Bright Magenta
+        printf '\033]4;14;%s\033\\' "$NORD7"  # Bright Cyan
+        printf '\033]4;15;%s\033\\' "$NORD6"  # Bright White
+    fi
+}
+
+# Semantic Dialog Functions for Benchmark UI
+benchmark_success_dialog() {
+    local title="$1"
+    local message="$2"
+    local height="${3:-10}"
+    local width="${4:-60}"
+    
+    # Temporarily override button colors for success
+    local temp_dialogrc="/tmp/exapg_benchmark_success_$$"
+    cp "$DIALOGRC" "$temp_dialogrc"
+    
+    cat >> "$temp_dialogrc" << 'EOF'
+button_active_color = (BLACK,GREEN,ON)
+button_inactive_color = (GREEN,BLACK,OFF)
+button_label_active_color = (BLACK,GREEN,ON)
+button_label_inactive_color = (GREEN,BLACK,OFF)
+EOF
+    
+    DIALOGRC="$temp_dialogrc" dialog \
+        --backtitle "ExaPG Benchmark Suite v$BENCHMARK_VERSION" \
+        --title "✓ $title" \
+        --msgbox "$message" "$height" "$width"
+    
+    rm -f "$temp_dialogrc"
+    export DIALOGRC="/tmp/exapg_benchmark_dialogrc_$$"
+}
+
+benchmark_warning_dialog() {
+    local title="$1"
+    local message="$2"
+    local height="${3:-10}"
+    local width="${4:-60}"
+    
+    # Temporarily override button colors for warning
+    local temp_dialogrc="/tmp/exapg_benchmark_warning_$$"
+    cp "$DIALOGRC" "$temp_dialogrc"
+    
+    cat >> "$temp_dialogrc" << 'EOF'
+button_active_color = (BLACK,YELLOW,ON)
+button_inactive_color = (YELLOW,BLACK,OFF)
+button_label_active_color = (BLACK,YELLOW,ON)
+button_label_inactive_color = (YELLOW,BLACK,OFF)
+title_color = (BLACK,YELLOW,ON)
+EOF
+    
+    DIALOGRC="$temp_dialogrc" dialog \
+        --backtitle "ExaPG Benchmark Suite v$BENCHMARK_VERSION" \
+        --title "⚠ $title" \
+        --msgbox "$message" "$height" "$width"
+    
+    rm -f "$temp_dialogrc"
+    export DIALOGRC="/tmp/exapg_benchmark_dialogrc_$$"
+}
+
+benchmark_error_dialog() {
+    local title="$1"
+    local message="$2"
+    local height="${3:-10}"
+    local width="${4:-60}"
+    
+    # Temporarily override button colors for error
+    local temp_dialogrc="/tmp/exapg_benchmark_error_$$"
+    cp "$DIALOGRC" "$temp_dialogrc"
+    
+    cat >> "$temp_dialogrc" << 'EOF'
+button_active_color = (WHITE,RED,ON)
+button_inactive_color = (RED,BLACK,OFF)
+button_label_active_color = (WHITE,RED,ON)
+button_label_inactive_color = (RED,BLACK,OFF)
+title_color = (WHITE,RED,ON)
+border_color = (RED,BLACK,ON)
+EOF
+    
+    DIALOGRC="$temp_dialogrc" dialog \
+        --backtitle "ExaPG Benchmark Suite v$BENCHMARK_VERSION" \
+        --title "✗ $title" \
+        --msgbox "$message" "$height" "$width"
+    
+    rm -f "$temp_dialogrc"
+    export DIALOGRC="/tmp/exapg_benchmark_dialogrc_$$"
+}
+
+benchmark_info_dialog() {
+    local title="$1"
+    local message="$2"
+    local height="${3:-10}"
+    local width="${4:-60}"
+    
+    # Temporarily override button colors for info
+    local temp_dialogrc="/tmp/exapg_benchmark_info_$$"
+    cp "$DIALOGRC" "$temp_dialogrc"
+    
+    cat >> "$temp_dialogrc" << 'EOF'
+button_active_color = (BLACK,MAGENTA,ON)
+button_inactive_color = (MAGENTA,BLACK,OFF)
+button_label_active_color = (BLACK,MAGENTA,ON)
+button_label_inactive_color = (MAGENTA,BLACK,OFF)
+title_color = (WHITE,MAGENTA,ON)
+border_color = (MAGENTA,BLACK,ON)
+EOF
+    
+    DIALOGRC="$temp_dialogrc" dialog \
+        --backtitle "ExaPG Benchmark Suite v$BENCHMARK_VERSION" \
+        --title "ℹ $title" \
+        --msgbox "$message" "$height" "$width"
+    
+    rm -f "$temp_dialogrc"
+    export DIALOGRC="/tmp/exapg_benchmark_dialogrc_$$"
 }
 
 # Terminal-Größe ermitteln (von terminal-ui.sh)
@@ -356,7 +518,7 @@ d8b_,dP  '?8bd8P'd8P' ?88  '?88'  ?88d8P' ?88
                              d88            ,88P
                              ?8P        '?8888P 
 
-         >>> E x a P G   v$BENCHMARK_VERSION <<<"
+         >>> E x a P G   v$EXAPG_VERSION <<<"
 
     local separator="================================================================="
     local welcome_content="
@@ -812,12 +974,12 @@ show_tpch_leaderboard() {
 ┌──────┬─────────────────┬──────────┬───────┬──────┐
 │ RANK │ DATABASE        │ QphH@1GB │ TIME  │ YEAR │
 ├──────┼─────────────────┼──────────┼───────┼──────┤
-│  1   │ ExaPG v2.0      │   2,100  │  62s  │ 2024 │
+│  1   │ ExaPG v3.2.2      │   2,100  │  62s  │ 2025 │
 │  2   │ PostgreSQL 15   │   2,000  │  65s  │ 2023 │
 │  3   │ PostgreSQL 14   │   1,600  │  81s  │ 2023 │
 │  4   │ TimescaleDB     │   1,200  │ 108s  │ 2023 │
-│  5   │ MariaDB 10.11   │   1,000  │ 130s  │ 2024 │
-│  6   │ MySQL 8.0       │     800  │ 162s  │ 2024 │
+│  5   │ MariaDB 10.11   │   1,000  │ 130s  │ 2025 │
+│  6   │ MySQL 8.0       │     800  │ 162s  │ 2025 │
 └──────┴─────────────────┴──────────┴───────┴──────┘
 
                   ENTERPRISE COMPARISON
@@ -827,9 +989,9 @@ show_tpch_leaderboard() {
 │ RANK │ DATABASE        │ QphH@1GB │ TIME  │ YEAR │
 ├──────┼─────────────────┼──────────┼───────┼──────┤
 │  1   │ Exasol 7.1      │  61,456  │ 0.6s  │ 2021 │
-│  2   │ SQL Server 2022 │   8,247  │ 9.7s  │ 2024 │
-│  3   │ ClickHouse 24.x │   5,000  │ 7.2s  │ 2024 │
-│  4   │ ExaPG v2.0      │   2,100  │  62s  │ 2024 │
+│  2   │ SQL Server 2022 │   8,247  │ 9.7s  │ 2025 │
+│  3   │ ClickHouse 24.x │   5,000  │ 7.2s  │ 2025 │
+│  4   │ ExaPG v3.2.2      │   2,100  │  62s  │ 2025 │
 │  5   │ Oracle 21c      │   1,320  │  60s  │ 2023 │
 │  6   │ DB2 11.5        │   1,200  │  66s  │ 2023 │
 └──────┴─────────────────┴──────────┴───────┴──────┘
@@ -919,9 +1081,7 @@ configure_database_connection() {
         sed -i "s/^BENCHMARK_DATABASE_USER=.*/BENCHMARK_DATABASE_USER=\"${config_array[3]}\"/" "$BENCHMARK_CONFIGS_DIR/benchmark.env"
         sed -i "s/^BENCHMARK_DATABASE_PASSWORD=.*/BENCHMARK_DATABASE_PASSWORD=\"${config_array[4]}\"/" "$BENCHMARK_CONFIGS_DIR/benchmark.env"
         
-        dialog --backtitle "Configuration Updated" \
-               --title "[ Success ]" \
-               --msgbox "Database connection settings have been updated successfully." 6 60
+        benchmark_success_dialog "Configuration Updated" "Database connection settings have been updated successfully." 6 60
     fi
 }
 

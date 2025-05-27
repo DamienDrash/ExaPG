@@ -5,6 +5,51 @@ All notable changes to ExaPG will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.2] - 2025-05-27
+
+### 🎨 Benchmark Suite Nord Theme Enhanced Integration
+
+This patch release extends the **Nord Theme Enhanced v5.0** to the ExaPG Benchmark Suite, providing a consistent and professional user experience across all ExaPG tools.
+
+### Added
+- **🎨 Benchmark Suite Nord Theme Enhanced v5.0** - Complete UI integration with semantic color coding
+  - **Consistent Design Language**: Unified Nord Theme across ExaPG Management Console and Benchmark Suite
+  - **Semantic Color Strategy**: Same 6-color strategy applied to benchmark interface
+    - 🔵 CYAN - Primary navigation, benchmark titles, main actions
+    - 🟢 GREEN - Success states, completed benchmarks, positive results
+    - 🔴 RED - Error states, failed tests, critical warnings
+    - 🟡 YELLOW - Warnings, attention items, configuration alerts
+    - 🔷 BLUE - Structural elements, forms, input fields
+    - 🟣 MAGENTA - Info dialogs, help sections, special functions
+  - **Enhanced Benchmark Experience**: Professional visual hierarchy for performance testing
+  - **Contextual Dialog Functions**: Semantic dialog types (success, warning, error, info)
+  - **Terminal Compatibility**: Full 256-color support with Nord color palette application
+
+### Changed
+- **🎨 Benchmark Suite UI Transformation** - Professional visual overhaul
+  - Upgraded from basic dialog interface to Nord Theme Enhanced v5.0
+  - Implemented semantic button hierarchy (Green=Start/OK, Red=Stop/Warning, Cyan=Navigation)
+  - Enhanced visual feedback for benchmark operations and results
+  - Improved readability and user orientation in performance testing workflows
+- **Version Consistency** - Synchronized versioning across all components
+  - Benchmark Suite: v1.2.0 (Nord Theme Enhanced integration)
+  - ExaPG Core: v3.2.2 (consistent with main project)
+  - UI Framework: v1.2.0 (semantic dialog functions)
+
+### Fixed
+- **🎨 Benchmark UI Design Issues** - Systematic visual improvements
+  - Resolved monotone benchmark interface → semantic color-coded experience
+  - Fixed missing visual hierarchy in benchmark menus → 4-level color hierarchy
+  - Improved benchmark result presentation → contextual color coding for success/failure
+  - Enhanced configuration dialogs → semantic color application for different input types
+
+### Technical Details
+- **🎨 Nord Theme Enhanced v5.0**: Extended to Benchmark Suite with full semantic color implementation
+- **Benchmark Suite Version**: 1.2.0 with Nord Theme Enhanced integration
+- **UI Consistency**: 100% visual consistency between Management Console and Benchmark Suite
+- **Performance Impact**: Zero performance impact, enhanced user experience only
+- **Accessibility**: WCAG-compliant contrasts maintained across all benchmark interfaces
+
 ## [3.2.1] - 2025-05-27
 
 ### 🎨 Nord Theme Enhanced v5.0 - UI Design Improvements

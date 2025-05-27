@@ -441,4 +441,4 @@ Thank you for contributing to ExaPG! Your efforts help make high-performance ana
 
 **Questions?** Open a [GitHub Discussion](https://github.com/DamienDrash/ExaPG/discussions) or create an issue.
 
-**ExaPG v3.2.1** ist eine professionell organisierte Open-Source-Projekt mit modernem UI-Design und vollständiger Dokumentation. 
+**ExaPG v3.2.2** ist eine professionell organisierte Open-Source-Projekt mit modernem UI-Design und vollständiger Dokumentation. 

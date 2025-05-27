@@ -2,7 +2,7 @@
 # ExaPG Terminal UI Framework v2.0 - Professionelles Interface
 
 # Globale Variablen
-EXAPG_VERSION="2.0.0"
+EXAPG_VERSION="3.2.2"
 EXAPG_PROFILES_DIR="config/profiles"
 EXAPG_DEFAULT_PROFILE="default"
 EXAPG_CURRENT_PROFILE=""

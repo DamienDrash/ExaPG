@@ -3,14 +3,14 @@
 # ExaPG - Intelligent PostgreSQL Analytics Database CLI
 # ===================================================================
 # Unified CLI that supports both modern dialog interface and simple CLI
-# Date: 2024-12-19
-# Version: 3.1.0
+# Date: 2025-05-28
+# Version: 3.2.2
 # ===================================================================
 
 set -euo pipefail
 
 readonly PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-readonly CLI_VERSION="3.1.0"
+readonly CLI_VERSION="3.2.2"
 
 # Colors for simple mode
 readonly RED='\033[0;31m'
@@ -30,7 +30,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 # Show help for the unified CLI
 show_unified_help() {
     cat << 'EOF'
-ExaPG - PostgreSQL Analytics Database CLI v3.1.0
+ExaPG - PostgreSQL Analytics Database CLI v3.2.2
 
 USAGE:
   ./scripts/cli/exapg [mode] [command]

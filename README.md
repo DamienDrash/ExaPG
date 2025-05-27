@@ -1,228 +1,228 @@
 # 🚀 ExaPG - PostgreSQL Analytics Database
 
-**ExaPG** ist eine hochperformante PostgreSQL-basierte Analytics-Datenbank, optimiert für Single-Node-Deployments mit Enterprise-Features.
+**ExaPG** is a high-performance PostgreSQL-based analytics database, optimized for single-node deployments with enterprise features.
 
 ## ✨ Features
 
-- 🔥 **Single-Node Analytics**: Optimiert für hohe Performance ohne Cluster-Komplexität
-- 📊 **JSON Analytics**: Vollständige JSONB-Unterstützung für moderne Datenstrukturen
-- ⚡ **Performance**: JIT-Compilation und parallele Query-Verarbeitung
-- 🗂️ **Time-Series**: Partitionierte Tabellen für Zeitreihendaten
-- 🔍 **Full-Text Search**: Erweiterte Suchfunktionen mit pg_trgm
-- 🛡️ **Enterprise Security**: MD5-Authentifizierung und SSL-Support
-- 📈 **Monitoring**: Integrierte Performance-Überwachung
-- 🧪 **Testing Framework**: Umfassende Test-Suite mit BATS
-- 🎨 **Modern UI**: Nord Theme Enhanced mit semantischen Farben und visueller Hierarchie
+- 🔥 **Single-Node Analytics**: Optimized for high performance without cluster complexity
+- 📊 **JSON Analytics**: Full JSONB support for modern data structures
+- ⚡ **Performance**: JIT compilation and parallel query processing
+- 🗂️ **Time-Series**: Partitioned tables for time-series data
+- 🔍 **Full-Text Search**: Advanced search capabilities with pg_trgm
+- 🛡️ **Enterprise Security**: MD5 authentication and SSL support
+- 📈 **Monitoring**: Integrated performance monitoring
+- 🧪 **Testing Framework**: Comprehensive test suite with BATS
+- 🎨 **Modern UI**: Nord Theme Enhanced with semantic colors and visual hierarchy
 
 ## 🎨 Nord Theme Enhanced
 
-ExaPG verfügt über ein professionelles **Nord Theme Enhanced v5.0** mit semantischer Farbkodierung:
+ExaPG features a professional **Nord Theme Enhanced v5.0** with semantic color coding:
 
-### Semantische Farbstrategie
-- 🔵 **CYAN** - Primäre Aktionen, Navigation, Titel
-- 🔷 **BLUE** - Strukturelemente, Borders, Management
-- 🟢 **GREEN** - Erfolg, positive Aktionen, OK-Buttons
-- 🟡 **YELLOW** - Warnungen, Shortcuts, Aufmerksamkeit
-- 🔴 **RED** - Fehler, kritische Aktionen, Exit-Warnungen
-- 🟣 **MAGENTA** - Info, Hilfe, Spezialfunktionen
+### Semantic Color Strategy
+- 🔵 **CYAN** - Primary actions, navigation, titles
+- 🔷 **BLUE** - Structural elements, borders, management
+- 🟢 **GREEN** - Success, positive actions, OK buttons
+- 🟡 **YELLOW** - Warnings, shortcuts, attention
+- 🔴 **RED** - Errors, critical actions, exit warnings
+- 🟣 **MAGENTA** - Info, help, special functions
 
-### Design-Features
-- **Visuelle Hierarchie**: 4-stufige Farbhierarchie für bessere Orientierung
-- **Semantische Buttons**: Grün für OK, Rot für Warnungen, Cyan für neutrale Aktionen
-- **Intelligente Menü-Navigation**: Farbkodierte Kategorien und auffällige Nummerierung
-- **Kontextuelle Anpassung**: Theme passt sich verschiedenen UI-Bereichen an
-- **Barrierefreiheit**: WCAG-konforme Kontraste und High-Contrast-Variante
+### Design Features
+- **Visual Hierarchy**: 4-level color hierarchy for better orientation
+- **Semantic Buttons**: Green for OK, Red for warnings, Cyan for neutral actions
+- **Intelligent Menu Navigation**: Color-coded categories with prominent numbering
+- **Contextual Adaptation**: Theme adapts to different UI areas
+- **Accessibility**: WCAG-compliant contrasts with High-Contrast variant
 
 ## 🚀 Quick Start
 
 ### 1. Single-Node Deployment
 
 ```bash
-# Einfaches Deployment
+# Simple deployment
 ./deploy-single-node.sh
 
-# Oder mit CLI (empfohlen - zeigt Nord Theme)
+# Or with CLI (recommended - shows Nord Theme)
 ./exapg
 ```
 
-### 2. Datenbankverbindung
+### 2. Database Connection
 
 ```bash
-# Direkte Verbindung
+# Direct connection
 psql -h localhost -p 5432 -U postgres
 
-# Über Docker
+# Via Docker
 docker exec -it exapg-coordinator psql -U postgres
 
-# Über CLI
+# Via CLI
 ./exapg simple shell
 ```
 
-### 3. Analytics testen
+### 3. Test Analytics
 
 ```sql
--- Analytics-Schema anzeigen
+-- Show analytics schema
 \dt analytics.*
 
--- Demo-Daten anzeigen
+-- Show demo data
 SELECT * FROM analytics.demo_events LIMIT 5;
 
--- JSON-Query
+-- JSON query
 SELECT event_data->>'browser' as browser, COUNT(*) 
 FROM analytics.demo_events 
 WHERE event_data ? 'browser'
 GROUP BY browser;
 ```
 
-## 📁 Projektstruktur
+## 📁 Project Structure
 
 ```
 exapg/
-├── 📄 README.md                    # Diese Datei
-├── 📄 LICENSE                      # MIT Lizenz
-├── 📄 CHANGELOG.md                 # Versionshistorie
-├── 📄 .env                         # Umgebungskonfiguration
-├── 🔧 exapg                        # CLI Wrapper (Haupteinstieg)
-├── 🚀 deploy-single-node.sh        # Deployment-Script
+├── 📄 README.md                    # This file
+├── 📄 LICENSE                      # MIT License
+├── 📄 CHANGELOG.md                 # Version history
+├── 📄 .env                         # Environment configuration
+├── 🔧 exapg                        # CLI Wrapper (main entry point)
+├── 🚀 deploy-single-node.sh        # Deployment script
 │
-├── 📁 config/                      # Konfigurationsdateien
-│   ├── postgresql/                 # PostgreSQL-Konfigurationen
-│   ├── init/                       # Initialisierungs-Scripts
-│   ├── ssl/                        # SSL-Zertifikate
-│   └── profiles/                   # Deployment-Profile
+├── 📁 config/                      # Configuration files
+│   ├── postgresql/                 # PostgreSQL configurations
+│   ├── init/                       # Initialization scripts
+│   ├── ssl/                        # SSL certificates
+│   └── profiles/                   # Deployment profiles
 │
-├── 🐳 docker/                      # Docker-Konfigurationen
-│   ├── docker-compose/             # Docker Compose Dateien
-│   ├── Dockerfile                  # Multi-Stage Production Build
-│   └── scripts/                    # Docker-spezifische Scripts
+├── 🐳 docker/                      # Docker configurations
+│   ├── docker-compose/             # Docker Compose files
+│   ├── Dockerfile                  # Multi-stage production build
+│   └── scripts/                    # Docker-specific scripts
 │
-├── 📜 scripts/                     # Verwaltungs-Scripts
-│   ├── cli/                        # CLI-Tools
-│   │   ├── exapg                   # Haupt-CLI-Script
-│   │   ├── terminal-ui.sh          # Dialog-Interface
-│   │   └── nord-theme-enhanced.sh  # Nord Theme Optimierungen
-│   ├── setup/                      # Setup-Scripts
-│   ├── maintenance/                # Wartungs-Scripts
-│   └── validation/                 # Validierungs-Scripts
+├── 📜 scripts/                     # Management scripts
+│   ├── cli/                        # CLI tools
+│   │   ├── exapg                   # Main CLI script
+│   │   ├── terminal-ui.sh          # Dialog interface
+│   │   └── nord-theme-enhanced.sh  # Nord Theme optimizations
+│   ├── setup/                      # Setup scripts
+│   ├── maintenance/                # Maintenance scripts
+│   └── validation/                 # Validation scripts
 │
-├── 🗄️ sql/                         # SQL-Dateien
-│   ├── analytics/                  # Analytics-Funktionen
-│   ├── partitioning/               # Partitionierungs-Strategien
-│   └── parallel/                   # Parallelisierungs-Funktionen
+├── 🗄️ sql/                         # SQL files
+│   ├── analytics/                  # Analytics functions
+│   ├── partitioning/               # Partitioning strategies
+│   └── parallel/                   # Parallelization functions
 │
-├── 🧪 tests/                       # Test-Suite
-│   ├── unit/                       # Unit-Tests
-│   ├── integration/                # Integrations-Tests
-│   └── e2e/                        # End-to-End-Tests
+├── 🧪 tests/                       # Test suite
+│   ├── unit/                       # Unit tests
+│   ├── integration/                # Integration tests
+│   └── e2e/                        # End-to-end tests
 │
-├── 📊 benchmark/                   # Performance-Benchmarks
-│   ├── benchmark-suite             # Benchmark-Tool
-│   ├── configs/                    # Benchmark-Konfigurationen
-│   └── results/                    # Benchmark-Ergebnisse
+├── 📊 benchmark/                   # Performance benchmarks
+│   ├── benchmark-suite             # Benchmark tool
+│   ├── configs/                    # Benchmark configurations
+│   └── results/                    # Benchmark results
 │
-├── 📚 docs/                        # Dokumentation
-│   ├── user-guide/                 # Benutzerhandbuch
-│   ├── technical/                  # Technische Dokumentation
-│   └── api/                        # API-Dokumentation
+├── 📚 docs/                        # Documentation
+│   ├── user-guide/                 # User manual
+│   ├── technical/                  # Technical documentation
+│   └── api/                        # API documentation
 │
-└── 📈 monitoring/                  # Monitoring-Stack
-    ├── grafana/                    # Grafana-Dashboards
-    ├── prometheus/                 # Prometheus-Konfiguration
-    └── alertmanager/               # Alert-Konfiguration
+└── 📈 monitoring/                  # Monitoring stack
+    ├── grafana/                    # Grafana dashboards
+    ├── prometheus/                 # Prometheus configuration
+    └── alertmanager/               # Alert configuration
 ```
 
-## 🛠️ CLI-Tools
+## 🛠️ CLI Tools
 
-### Haupt-CLI mit Nord Theme
+### Main CLI with Nord Theme
 
 ```bash
-# Modern Dialog Interface (empfohlen) - zeigt Nord Theme Enhanced
+# Modern Dialog Interface (recommended) - shows Nord Theme Enhanced
 ./exapg
 
 # Simple CLI Mode
 ./exapg simple [command]
 
-# Verfügbare Commands:
-./exapg simple deploy    # Cluster deployen
-./exapg simple status    # Status prüfen
-./exapg simple shell     # Datenbankverbindung
-./exapg simple stop      # Services stoppen
-./exapg simple test      # Tests ausführen
+# Available commands:
+./exapg simple deploy    # Deploy cluster
+./exapg simple status    # Check status
+./exapg simple shell     # Database connection
+./exapg simple stop      # Stop services
+./exapg simple test      # Run tests
 ```
 
-### Theme-Optimierungen
+### Theme Optimizations
 
 ```bash
-# Nord Theme Enhanced aktivieren/testen
+# Activate/test Nord Theme Enhanced
 ./scripts/cli/nord-theme-enhanced.sh
 
-# Theme-Einstellungen im CLI
+# Theme settings in CLI
 ./exapg
-# → Wählen Sie "5" für "Theme Settings"
-# → 4 professionelle Themes verfügbar
+# → Select "5" for "Theme Settings"
+# → 4 professional themes available
 ```
 
-### Spezielle Tools
+### Special Tools
 
 ```bash
-# Benchmark-Suite
+# Benchmark Suite (with Nord Theme Enhanced)
 ./benchmark-suite
 
-# Validierung
+# Validation
 ./scripts/validate-config.sh
 
-# Tests ausführen
+# Run tests
 ./tests/setup.sh && bats tests/
 ```
 
-## 🧪 Testing & Qualitätssicherung
+## 🧪 Testing & Quality Assurance
 
-ExaPG verfügt über eine umfassende Test-Suite:
+ExaPG features a comprehensive test suite:
 
 ```bash
-# Test-Framework installieren
+# Install test framework
 ./tests/setup.sh
 
-# Unit-Tests
+# Unit tests
 bats tests/unit/
 
-# Integration-Tests
+# Integration tests
 bats tests/integration/
 
-# End-to-End-Tests (optional)
+# End-to-end tests (optional)
 EXAPG_RUN_E2E_TESTS=true bats tests/e2e/
 
-# Alle Tests
+# All tests
 bats tests/
 ```
 
-### Test-Kategorien
+### Test Categories
 
-- **Unit-Tests**: CLI-Funktionen, Docker-Utils, Validierung
-- **Integration-Tests**: Deployment-Workflows, Service-Integration
-- **E2E-Tests**: Vollständige Deployment-Szenarien
-- **Performance-Tests**: Benchmark-Suite für Performance-Regression
-- **UI-Tests**: 100% Funktionalität aller 6 UI-Bereiche verifiziert
+- **Unit Tests**: CLI functions, Docker utils, validation
+- **Integration Tests**: Deployment workflows, service integration
+- **E2E Tests**: Complete deployment scenarios
+- **Performance Tests**: Benchmark suite for performance regression
+- **UI Tests**: 100% functionality of all 6 UI areas verified
 
-## 📊 Performance-Features
+## 📊 Performance Features
 
-### Analytics-Optimierungen
+### Analytics Optimizations
 
-- **JIT-Compilation**: Automatische Query-Optimierung
-- **Parallel Processing**: Multi-Core-Nutzung für große Queries
-- **Columnar Storage**: Effiziente Speicherung für Analytics
-- **Partitioning**: Automatische Partitionierung für Time-Series
+- **JIT Compilation**: Automatic query optimization
+- **Parallel Processing**: Multi-core utilization for large queries
+- **Columnar Storage**: Efficient storage for analytics
+- **Partitioning**: Automatic partitioning for time-series
 
 ### Monitoring
 
-- **pg_stat_statements**: Query-Performance-Tracking
-- **Grafana Dashboards**: Visuelle Performance-Überwachung
-- **Prometheus Metrics**: Systemmetriken und Alerts
-- **Health Checks**: Automatische Systemüberwachung
+- **pg_stat_statements**: Query performance tracking
+- **Grafana Dashboards**: Visual performance monitoring
+- **Prometheus Metrics**: System metrics and alerts
+- **Health Checks**: Automatic system monitoring
 
-## 🔧 Konfiguration
+## 🔧 Configuration
 
-### Umgebungsvariablen (.env)
+### Environment Variables (.env)
 
 ```bash
 # Database Configuration
@@ -242,17 +242,17 @@ ENABLE_MANAGEMENT_UI=true
 EXAPG_THEME=nord-dark-enhanced
 ```
 
-### Profile
+### Profiles
 
-ExaPG unterstützt verschiedene Deployment-Profile:
+ExaPG supports different deployment profiles:
 
-- `single-node-optimized`: Optimiert für Single-Node-Performance
-- `development`: Entwicklungsumgebung mit Debug-Features
-- `production`: Produktionsumgebung mit Security-Hardening
+- `single-node-optimized`: Optimized for single-node performance
+- `development`: Development environment with debug features
+- `production`: Production environment with security hardening
 
-## 🚀 Deployment-Optionen
+## 🚀 Deployment Options
 
-### 1. Single-Node (Empfohlen)
+### 1. Single-Node (Recommended)
 
 ```bash
 ./deploy-single-node.sh
@@ -276,33 +276,33 @@ kubectl apply -f k8s/
 ### Grafana Dashboards
 
 - **System Overview**: CPU, Memory, Disk I/O
-- **Database Performance**: Query-Performance, Connections
-- **Analytics Metrics**: Custom Business Metrics
+- **Database Performance**: Query performance, connections
+- **Analytics Metrics**: Custom business metrics
 
 ### Management UI
 
 ```bash
-# Management UI starten
+# Start Management UI
 ./exapg simple deploy
-# Zugriff: http://localhost:3000
+# Access: http://localhost:3000
 ```
 
 ## 🛡️ Security
 
-### Authentifizierung
+### Authentication
 
-- **MD5-Passwort-Authentifizierung**: Standard für lokale Verbindungen
-- **SSL/TLS-Unterstützung**: Verschlüsselte Verbindungen
-- **Role-Based Access Control**: Granulare Berechtigungen
+- **MD5 Password Authentication**: Standard for local connections
+- **SSL/TLS Support**: Encrypted connections
+- **Role-Based Access Control**: Granular permissions
 
-### Security-Validierung
+### Security Validation
 
 ```bash
-# Security-Check ausführen
+# Run security check
 ./scripts/validate-config.sh --mode security
 ```
 
-## 📚 Dokumentation
+## 📚 Documentation
 
 - **User Guide**: `docs/user-guide/`
 - **Technical Docs**: `docs/technical/`
@@ -311,19 +311,19 @@ kubectl apply -f k8s/
 
 ## 🤝 Contributing
 
-Siehe `CONTRIBUTING.md` für Entwicklungsrichtlinien.
+See `CONTRIBUTING.md` for development guidelines.
 
-## 📄 Lizenz
+## 📄 License
 
-MIT License - siehe `LICENSE` Datei.
+MIT License - see `LICENSE` file.
 
 ## 🆘 Support
 
-- **Issues**: GitHub Issues für Bug-Reports
-- **Discussions**: GitHub Discussions für Fragen
-- **Documentation**: Vollständige Docs in `docs/`
+- **Issues**: GitHub Issues for bug reports
+- **Discussions**: GitHub Discussions for questions
+- **Documentation**: Complete docs in `docs/`
 
 ---
 
-**ExaPG v3.2.1** - Enterprise PostgreSQL Analytics Database  
-🚀 **Produktionsbereit** | 🧪 **Vollständig getestet** | 📊 **Performance-optimiert** | ✅ **100% UI-Funktionalität verifiziert** | 🎨 **Nord Theme Enhanced v5.0** 
+**ExaPG v3.2.2** - Enterprise PostgreSQL Analytics Database  
+🚀 **Production Ready** | 🧪 **Fully Tested** | 📊 **Performance Optimized** | ✅ **100% UI Functionality Verified** | 🎨 **Nord Theme Enhanced v5.0** | 📊 **Benchmark Suite Integrated** 

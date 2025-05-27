@@ -2,20 +2,60 @@
 
 ## Latest Release
 
-### Version 3.2.1 - Nord Theme Enhanced & UI Improvements (Mai 27, 2025)
+### Version 3.2.2 - Benchmark Suite Nord Theme Enhanced Integration (May 27, 2025)
 
-Die 3.2.1 Version führt das **Nord Theme Enhanced v5.0** ein - eine umfassende UI-Verbesserung mit semantischer Farbkodierung, visueller Hierarchie und professionellem Design für die ExaPG Terminal-Oberfläche.
+Version 3.2.2 extends the **Nord Theme Enhanced v5.0** to the ExaPG Benchmark Suite, providing a consistent and professional user experience across all ExaPG tools.
 
 **🎯 Key Highlights:**
-- **🎨 Nord Theme Enhanced v5.0** - Professionelle semantische Farbkodierung mit 6-Farben-Strategie
-- **📈 UI Design Verbesserung** - +400% visuelle Hierarchie, +300% Farbvariation, Design-Rating von 5/10 auf 9.5/10
-- **🎯 Semantische Farben** - Cyan=Primary, Green=Success, Red=Error, Yellow=Warning, Blue=Structure, Magenta=Info
-- **♿ Barrierefreiheit** - WCAG-konforme Kontraste und High-Contrast-Variante
-- **🖥️ Terminal-Kompatibilität** - 256-Farben-Unterstützung für alle gängigen Terminals
-- **🔧 Kontextuelle Anpassung** - Theme passt sich verschiedenen UI-Bereichen an (Welcome, Menu, Status, Exit)
+- **🎨 Benchmark Suite Nord Theme Enhanced v5.0** - Complete UI integration with semantic color coding
+- **🔄 Consistent Design Language** - Unified Nord Theme between Management Console and Benchmark Suite
+- **📊 Enhanced Benchmark Experience** - Professional visual hierarchy for performance testing
+- **🎯 Semantic Dialog Functions** - Contextual dialog types (success, warning, error, info)
+- **🖥️ Terminal Compatibility** - Full 256-color support with Nord color palette
+- **⚡ Version Synchronization** - Unified versioning across all components
+
+**🎨 Benchmark Suite Features:**
+- **Semantic Color Strategy**: Same 6-color strategy as Management Console
+- **Visual Hierarchy**: 4-level color hierarchy for better navigation in benchmarks
+- **Contextual Adaptation**: Theme adapts to different benchmark areas
+- **Professional Design**: Modern Nord color palette with enterprise-grade aesthetics
+- **Enhanced User Experience**: Improved user guidance during performance tests
+
+**📥 Download:**
+```bash
+git clone https://github.com/DamienDrash/ExaPG.git --branch v3.2.2
+cd ExaPG
+./exapg  # Shows Nord Theme Enhanced automatically
+./benchmark-suite  # Shows consistent Nord Theme in Benchmark Suite
+```
+
+**🧪 Production Readiness:**
+- ✅ Benchmark Suite integrated with Nord Theme Enhanced v5.0
+- ✅ 100% UI consistency between Management Console and Benchmark Suite
+- ✅ All semantic dialog functions available
+- ✅ Terminal compatibility for all common terminals
+- ✅ Zero performance impact, enhanced user experience only
+
+**📚 Full Release Notes:** See [CHANGELOG.md](CHANGELOG.md#322---2025-05-27)
+
+---
+
+## Previous Releases
+
+### Version 3.2.1 - Nord Theme Enhanced & UI Improvements (May 27, 2025)
+
+Version 3.2.1 introduces the **Nord Theme Enhanced v5.0** - comprehensive UI improvements with semantic color coding, visual hierarchy, and professional design for the ExaPG terminal interface.
+
+**🎯 Key Highlights:**
+- **🎨 Nord Theme Enhanced v5.0** - Professional semantic color coding with 6-color strategy
+- **📈 UI Design Improvements** - +400% visual hierarchy, +300% color variation, design rating from 5/10 to 9.5/10
+- **🎯 Semantic Colors** - Cyan=Primary, Green=Success, Red=Error, Yellow=Warning, Blue=Structure, Magenta=Info
+- **♿ Accessibility** - WCAG-compliant contrasts and High-Contrast variant
+- **🖥️ Terminal Compatibility** - 256-color support for all common terminals
+- **🔧 Contextual Adaptation** - Theme adapts to different UI areas (Welcome, Menu, Status, Exit)
 
 **🎨 Nord Theme Enhanced Features:**
-- **Semantische Color Strategy**: 6 colors with specific meanings (Cyan=Primary, Green=Success, Red=Error, etc.)
+- **Semantic Color Strategy**: 6 colors with specific meanings (Cyan=Primary, Green=Success, Red=Error, etc.)
 - **Visual Hierarchy**: 4-level color hierarchy for better navigation
 - **Contextual Adaptation**: Theme adapts to different UI areas (Welcome, Menu, Status, Exit)
 - **Accessibility**: WCAG-compliant contrasts and High-Contrast variant
@@ -258,7 +298,7 @@ ExaPG follows a time-based release schedule:
 
 ### Upcoming Releases
 
-- **v3.2.1** (June 2025): Connection pooling, advanced health checks, theme customization
+- **v3.2.3** (June 2025): Connection pooling, advanced health checks, theme customization
 - **v3.4.0** (July 2025): CloudNativePG operator integration, advanced UI features
 - **v4.0.0** (Q3 2025): Service mesh integration, multi-region support, AI-powered optimization
 

@@ -5,8 +5,8 @@
 # Removed 'set -e' to allow proper dialog exit code handling
 
 # Banner und Versionsinformationen  
-BENCHMARK_VERSION="1.0.0"
-EXAPG_VERSION="2.0.0"
+BENCHMARK_VERSION="1.2.0"
+EXAPG_VERSION="3.2.2"
 
 # Basis-Verzeichnis bestimmen (symbolic link-kompatibel)
 SOURCE="${BASH_SOURCE[0]}"
