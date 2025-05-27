@@ -34,7 +34,7 @@ cd ExaPG
 
 ## Previous Releases
 
-### Version 3.1.0 - Intelligent CLI System (December 19, 2024)
+### Version 3.1.0 - Intelligent CLI System (May 25, 2025)
 
 Revolutionary dual-mode CLI system with modern dialog interface and simple automation mode.
 
@@ -46,7 +46,7 @@ Revolutionary dual-mode CLI system with modern dialog interface and simple autom
 
 **Download:** `git clone https://github.com/DamienDrash/ExaPG.git --branch v3.1.0`
 
-### Version 3.0.0 - Enterprise Production Ready (December 19, 2024)
+### Version 3.0.0 - Enterprise Production Ready (May 24, 2025)
 
 The 3.0.0 release is a major milestone that transforms ExaPG into an enterprise-grade analytical database platform with production-ready security, Kubernetes support, and comprehensive testing.
 
@@ -69,13 +69,13 @@ cd k8s
 ./deploy.sh prod --all
 ```
 
-**📚 Full Release Notes:** See [CHANGELOG.md](CHANGELOG.md#300---2024-12-19)
+**📚 Full Release Notes:** See [CHANGELOG.md](CHANGELOG.md#300---2025-05-24)
 
 ---
 
 ## Stable Releases
 
-### Version 2.0.0 - Enterprise Benchmark Suite (May 24, 2024)
+### Version 2.0.0 - Enterprise Benchmark Suite (May 23, 2025)
 
 The 2.0.0 release introduced enterprise-grade features and professional tooling.
 
@@ -87,7 +87,7 @@ The 2.0.0 release introduced enterprise-grade features and professional tooling.
 
 **Download:** `git clone https://github.com/DamienDrash/ExaPG.git --branch v2.0.0`
 
-### Version 1.5.0 - Automatic Cluster Management (May 20, 2024)
+### Version 1.5.0 - Automatic Cluster Management (May 23, 2025)
 
 **Features:**
 - Dynamic cluster scaling with REST API
@@ -97,7 +97,7 @@ The 2.0.0 release introduced enterprise-grade features and professional tooling.
 
 **Download:** `git clone https://github.com/DamienDrash/ExaPG.git --branch v1.5.0`
 
-### Version 1.4.0 - High Availability (May 15, 2024)
+### Version 1.4.0 - High Availability (May 23, 2025)
 
 **Features:**
 - High availability with Patroni
@@ -107,7 +107,7 @@ The 2.0.0 release introduced enterprise-grade features and professional tooling.
 
 **Download:** `git clone https://github.com/DamienDrash/ExaPG.git --branch v1.4.0`
 
-### Version 1.3.0 - Optimized Distribution (May 10, 2024)
+### Version 1.3.0 - Optimized Distribution (May 22, 2025)
 
 **Features:**
 - Intelligent data distribution
@@ -117,7 +117,7 @@ The 2.0.0 release introduced enterprise-grade features and professional tooling.
 
 **Download:** `git clone https://github.com/DamienDrash/ExaPG.git --branch v1.3.0`
 
-### Version 1.2.0 - Monitoring Stack (May 5, 2024)
+### Version 1.2.0 - Monitoring Stack (May 22, 2025)
 
 **Features:**
 - Prometheus and Grafana integration
@@ -127,7 +127,7 @@ The 2.0.0 release introduced enterprise-grade features and professional tooling.
 
 **Download:** `git clone https://github.com/DamienDrash/ExaPG.git --branch v1.2.0`
 
-### Version 1.1.0 - Data Integration (April 30, 2024)
+### Version 1.1.0 - Data Integration (May 22, 2025)
 
 **Features:**
 - Foreign Data Wrappers for multiple sources
@@ -137,7 +137,7 @@ The 2.0.0 release introduced enterprise-grade features and professional tooling.
 
 **Download:** `git clone https://github.com/DamienDrash/ExaPG.git --branch v1.1.0`
 
-### Version 1.0.0 - Initial Release (April 25, 2024)
+### Version 1.0.0 - Initial Release (May 22, 2025)
 
 **Features:**
 - PostgreSQL 15 with analytical optimizations
@@ -146,19 +146,6 @@ The 2.0.0 release introduced enterprise-grade features and professional tooling.
 - TimescaleDB, PostGIS, pgvector extensions
 
 **Download:** `git clone https://github.com/DamienDrash/ExaPG.git --branch v1.0.0`
-
----
-
-## Pre-Releases
-
-### Version 0.9.0 - Beta (April 20, 2024)
-- Core functionality implementation
-- Basic Docker deployment
-- Initial documentation
-
-### Version 0.1.0 - Alpha (April 15, 2024)
-- Project initialization
-- Repository structure setup
 
 ---
 
@@ -206,15 +193,25 @@ docker-compose up -d
 
 ExaPG follows a time-based release schedule:
 
-- **Major Releases (x.0.0)**: Quarterly (with significant features)
-- **Minor Releases (x.y.0)**: Monthly (with features and improvements)
+- **Major Releases (x.0.0)**: As needed (with significant features)
+- **Minor Releases (x.y.0)**: Weekly during active development
 - **Patch Releases (x.y.z)**: As needed (bug fixes and security updates)
+
+### Development Timeline
+
+**Actual Development Period: May 22-27, 2025 (5 days intensive development)**
+
+- **Day 1 (May 22)**: Project initialization, core features, monitoring, data integration
+- **Day 2 (May 23)**: Enterprise features, HA, cluster management, benchmarks
+- **Day 3 (May 24)**: Enterprise security, Kubernetes, testing infrastructure
+- **Day 4 (May 25)**: CLI enhancement, intelligent interface system
+- **Day 5 (May 27)**: Project cleanup, comprehensive testing, production verification
 
 ### Upcoming Releases
 
-- **v3.1.0** (January 2025): Connection pooling, advanced health checks
-- **v3.2.0** (February 2025): CloudNativePG operator integration
-- **v4.0.0** (Q2 2025): Service mesh integration, multi-region support
+- **v3.3.0** (June 2025): Connection pooling, advanced health checks
+- **v3.4.0** (July 2025): CloudNativePG operator integration
+- **v4.0.0** (Q3 2025): Service mesh integration, multi-region support
 
 ---
 
@@ -232,7 +229,6 @@ ExaPG follows a time-based release schedule:
 | 1.2.x | End of Life | - |
 | 1.1.x | End of Life | - |
 | 1.0.x | End of Life | - |
-| < 1.0 | End of Life | - |
 
 **Support Levels:**
 - **Current**: Active development, all fixes
