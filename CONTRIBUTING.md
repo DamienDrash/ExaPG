@@ -16,7 +16,7 @@ Thank you for your interest in contributing to ExaPG! We welcome contributions f
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to [project-maintainers@example.com].
+This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to [dfrigewski@gmail.com].
 
 ## Getting Started
 
