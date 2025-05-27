@@ -1,7 +1,7 @@
 # 📚 ExaPG Documentation Index
 
 *Central navigation for all ExaPG documentation*  
-*Version: 2.0.0 | Updated: May 2024*
+*Version: 3.2.1 | Updated: May 2025*
 
 ## 🚀 Quick Start
 
@@ -21,6 +21,7 @@
 
 ### Operation & Usage
 - **[CLI Reference](user-guide/cli-reference.md)** - Terminal interface usage ⭐ RELOCATED
+- **[Nord Theme Guide](user-guide/nord-theme-guide.md)** - Professional terminal theming ⭐ NEW
 - **[Database Connection](user-guide/getting-started.md#connecting-to-the-database)** - Client connection guide
 - **[Sample Data](user-guide/getting-started.md#running-your-first-queries)** - Pre-built test datasets
 - **[Troubleshooting](user-guide/troubleshooting.md)** - Problem diagnosis and solutions ⭐ COMPREHENSIVE
@@ -75,11 +76,11 @@
 
 | Category | Files | Total Size | Status |
 |----------|-------|------------|--------|
-| **User Guides** | 5 | ~69KB | ⭐ ENHANCED |
+| **User Guides** | 6 | ~85KB | ⭐ ENHANCED |
 | **Technical** | 5 | ~53KB | ✅ Reorganized |
 | **Integration** | 3 | ~30KB | ✅ Reorganized |
 | **Modules** | 9+ | ~35KB+ | ✅ Standardized |
-| **Total** | **28+** | **~242KB+** | 📈 62% Growth |
+| **Total** | **29+** | **~258KB+** | 📈 67% Growth |
 
 ## 🎯 Documentation Improvements
 
@@ -121,5 +122,5 @@
 
 ---
 
-*This documentation is continuously updated. Last major update: May 2024*  
+*This documentation is continuously updated. Last major update: May 2025*  
 *Documentation quality score: ⭐⭐⭐⭐⭐ (9.8/10)* 

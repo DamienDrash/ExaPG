@@ -111,6 +111,7 @@ We welcome various types of contributions:
 - **☸️ Kubernetes** - Improve K8s manifests, operators, cloud-native features
 - **🔒 Security** - Security audits, vulnerability fixes, hardening
 - **🌍 Internationalization** - Add language support, improve translations
+- **🎨 UI/UX Design** - Improve Nord Theme Enhanced, accessibility, visual design
 
 ### Finding Issues to Work On
 
@@ -286,6 +287,32 @@ test(performance): add TPC-H scale tests
 - Test with multiple data sizes
 - Monitor memory usage
 
+### UI/UX Development
+
+**Nord Theme Enhanced:**
+- Follow semantic color strategy (6-color system)
+- Maintain visual hierarchy (4 levels)
+- Test accessibility (WCAG compliance)
+- Ensure terminal compatibility (256-color support)
+
+**Theme Development:**
+```bash
+# Test theme changes
+./scripts/cli/nord-theme-enhanced.sh
+
+# Validate color accessibility
+# Check contrast ratios (minimum 4.5:1)
+# Test with different terminal emulators
+```
+
+**Color Guidelines:**
+- 🔵 **CYAN** - Primary actions, navigation, titles
+- 🔷 **BLUE** - Structural elements, borders, management
+- 🟢 **GREEN** - Success, positive actions, OK buttons
+- 🟡 **YELLOW** - Warnings, shortcuts, attention
+- 🔴 **RED** - Errors, critical actions, exit warnings
+- 🟣 **MAGENTA** - Info, help, special functions
+
 ## Testing
 
 ### Test Categories
@@ -412,4 +439,6 @@ We appreciate all contributions! Contributors will be:
 
 Thank you for contributing to ExaPG! Your efforts help make high-performance analytics accessible to everyone.
 
-**Questions?** Open a [GitHub Discussion](https://github.com/DamienDrash/ExaPG/discussions) or create an issue. 
+**Questions?** Open a [GitHub Discussion](https://github.com/DamienDrash/ExaPG/discussions) or create an issue.
+
+**ExaPG v3.2.1** ist eine professionell organisierte Open-Source-Projekt mit modernem UI-Design und vollständiger Dokumentation. 

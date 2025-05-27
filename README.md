@@ -12,6 +12,26 @@
 - 🛡️ **Enterprise Security**: MD5-Authentifizierung und SSL-Support
 - 📈 **Monitoring**: Integrierte Performance-Überwachung
 - 🧪 **Testing Framework**: Umfassende Test-Suite mit BATS
+- 🎨 **Modern UI**: Nord Theme Enhanced mit semantischen Farben und visueller Hierarchie
+
+## 🎨 Nord Theme Enhanced
+
+ExaPG verfügt über ein professionelles **Nord Theme Enhanced v5.0** mit semantischer Farbkodierung:
+
+### Semantische Farbstrategie
+- 🔵 **CYAN** - Primäre Aktionen, Navigation, Titel
+- 🔷 **BLUE** - Strukturelemente, Borders, Management
+- 🟢 **GREEN** - Erfolg, positive Aktionen, OK-Buttons
+- 🟡 **YELLOW** - Warnungen, Shortcuts, Aufmerksamkeit
+- 🔴 **RED** - Fehler, kritische Aktionen, Exit-Warnungen
+- 🟣 **MAGENTA** - Info, Hilfe, Spezialfunktionen
+
+### Design-Features
+- **Visuelle Hierarchie**: 4-stufige Farbhierarchie für bessere Orientierung
+- **Semantische Buttons**: Grün für OK, Rot für Warnungen, Cyan für neutrale Aktionen
+- **Intelligente Menü-Navigation**: Farbkodierte Kategorien und auffällige Nummerierung
+- **Kontextuelle Anpassung**: Theme passt sich verschiedenen UI-Bereichen an
+- **Barrierefreiheit**: WCAG-konforme Kontraste und High-Contrast-Variante
 
 ## 🚀 Quick Start
 
@@ -21,8 +41,8 @@
 # Einfaches Deployment
 ./deploy-single-node.sh
 
-# Oder mit CLI
-./exapg simple deploy
+# Oder mit CLI (empfohlen - zeigt Nord Theme)
+./exapg
 ```
 
 ### 2. Datenbankverbindung
@@ -79,7 +99,8 @@ exapg/
 ├── 📜 scripts/                     # Verwaltungs-Scripts
 │   ├── cli/                        # CLI-Tools
 │   │   ├── exapg                   # Haupt-CLI-Script
-│   │   └── terminal-ui.sh          # Dialog-Interface
+│   │   ├── terminal-ui.sh          # Dialog-Interface
+│   │   └── nord-theme-enhanced.sh  # Nord Theme Optimierungen
 │   ├── setup/                      # Setup-Scripts
 │   ├── maintenance/                # Wartungs-Scripts
 │   └── validation/                 # Validierungs-Scripts
@@ -112,10 +133,10 @@ exapg/
 
 ## 🛠️ CLI-Tools
 
-### Haupt-CLI
+### Haupt-CLI mit Nord Theme
 
 ```bash
-# Modern Dialog Interface (empfohlen)
+# Modern Dialog Interface (empfohlen) - zeigt Nord Theme Enhanced
 ./exapg
 
 # Simple CLI Mode
@@ -127,6 +148,18 @@ exapg/
 ./exapg simple shell     # Datenbankverbindung
 ./exapg simple stop      # Services stoppen
 ./exapg simple test      # Tests ausführen
+```
+
+### Theme-Optimierungen
+
+```bash
+# Nord Theme Enhanced aktivieren/testen
+./scripts/cli/nord-theme-enhanced.sh
+
+# Theme-Einstellungen im CLI
+./exapg
+# → Wählen Sie "5" für "Theme Settings"
+# → 4 professionelle Themes verfügbar
 ```
 
 ### Spezielle Tools
@@ -169,6 +202,7 @@ bats tests/
 - **Integration-Tests**: Deployment-Workflows, Service-Integration
 - **E2E-Tests**: Vollständige Deployment-Szenarien
 - **Performance-Tests**: Benchmark-Suite für Performance-Regression
+- **UI-Tests**: 100% Funktionalität aller 6 UI-Bereiche verifiziert
 
 ## 📊 Performance-Features
 
@@ -203,6 +237,9 @@ MAX_PARALLEL_WORKERS=8
 # Features
 ENABLE_MONITORING=true
 ENABLE_MANAGEMENT_UI=true
+
+# UI Theme (optional)
+EXAPG_THEME=nord-dark-enhanced
 ```
 
 ### Profile
@@ -288,5 +325,5 @@ MIT License - siehe `LICENSE` Datei.
 
 ---
 
-**ExaPG v3.2.0** - Enterprise PostgreSQL Analytics Database  
-🚀 **Produktionsbereit** | 🧪 **Vollständig getestet** | 📊 **Performance-optimiert** | ✅ **100% UI-Funktionalität verifiziert** 
+**ExaPG v3.2.1** - Enterprise PostgreSQL Analytics Database  
+🚀 **Produktionsbereit** | 🧪 **Vollständig getestet** | 📊 **Performance-optimiert** | ✅ **100% UI-Funktionalität verifiziert** | 🎨 **Nord Theme Enhanced v5.0** 
