@@ -459,7 +459,7 @@ BEGIN
     SET LOCAL citus.all_modifications_commutative TO 'true';
     SET LOCAL citus.enable_repartition_joins TO 'true';
     SET LOCAL citus.enable_repartition_inserts TO 'true';
-    SET LOCAL citus.max_adaptive_executor_pool_size = parallel_worker_count * 2;
+    SET LOCAL citus.max_adaptive_executor_pool_size = 16;
     
     -- Abfrage ausführen
     RAISE NOTICE 'Führe verteilte Abfrage mit % Worker-Prozessen aus', parallel_worker_count;

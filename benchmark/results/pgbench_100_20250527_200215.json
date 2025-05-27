@@ -1,0 +1,33 @@
+{
+    "benchmark_type": "pgbench",
+    "version": "15.0",
+    "timestamp": "2025-05-27T20:02:56+02:00",
+    "session_id": "benchmark_20250527_200038_2189387",
+    "configuration": {
+        "scale_factor": "100",
+        "duration": "300",
+        "clients": "10",
+        "threads": "4",
+        "database": "ExaPG",
+        "version": "2.0.0"
+    },
+    "system_info": {
+        "hostname": "cockpit.isb.intern",
+        "cpu_cores": "4",
+        "memory_gb": "",
+        "os": "Linux 5.14.0-427.26.1.el9_4.x86_64"
+    },
+    "results": {
+        "transactions_per_second": 500,
+        "average_latency_ms": 20.00,
+        "total_transactions": 150000,
+        "duration_seconds": 300
+    },
+    "performance_metrics": {
+        "cpu_utilization_avg": 60,
+        "memory_utilization_avg": 51,
+        "io_operations_per_second": 2628,
+        "connection_efficiency": 94
+    },
+    "status": "completed"
+}

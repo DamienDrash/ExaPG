@@ -1,0 +1,234 @@
+#!/bin/bash
+# ===================================================================
+# ExaPG - Intelligent PostgreSQL Analytics Database CLI
+# ===================================================================
+# Unified CLI that supports both modern dialog interface and simple CLI
+# Date: 2024-12-19
+# Version: 3.1.0
+# ===================================================================
+
+set -euo pipefail
+
+readonly PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+readonly CLI_VERSION="3.1.0"
+
+# Colors for simple mode
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[0;33m'
+readonly BLUE='\033[0;34m'
+readonly CYAN='\033[0;36m'
+readonly WHITE='\033[1;37m'
+readonly NC='\033[0m'
+
+# Logging functions for simple mode
+log_info() { echo -e "${BLUE}[INFO]${NC} $*"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $*"; }
+log_warning() { echo -e "${YELLOW}[WARNING]${NC} $*"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
+
+# Show help for the unified CLI
+show_unified_help() {
+    cat << 'EOF'
+ExaPG - PostgreSQL Analytics Database CLI v3.1.0
+
+USAGE:
+  ./scripts/cli/exapg [mode] [command]
+
+MODES:
+  (default)       Modern dialog-based interface (recommended)
+  simple          Simple command-line interface
+  
+SIMPLE MODE COMMANDS:
+  ./scripts/cli/exapg simple deploy    Deploy analytics cluster
+  ./scripts/cli/exapg simple status    Check running services
+  ./scripts/cli/exapg simple shell     Connect to database
+  ./scripts/cli/exapg simple stop      Stop all services
+  ./scripts/cli/exapg simple test      Run tests
+  ./scripts/cli/exapg simple help      Show simple mode help
+
+EXAMPLES:
+  ./scripts/cli/exapg                  # Start modern dialog interface
+  ./scripts/cli/exapg simple           # Start simple CLI mode
+  ./scripts/cli/exapg simple deploy    # Deploy using simple CLI
+  ./scripts/cli/exapg simple status    # Check status using simple CLI
+
+TOOLS:
+  ./benchmark-suite                   # Professional benchmark suite
+  ./scripts/test-exapg.sh             # Basic testing tool
+
+DATABASE ACCESS:
+  Host: localhost:5432
+  User: postgres
+  Password: postgres
+  Database: postgres
+
+For detailed documentation: docs/user-guide/
+EOF
+}
+
+# Simple mode functions
+simple_deploy_cluster() {
+    log_info "Deploying ExaPG Analytics Cluster..."
+    cd "${PROJECT_ROOT}/docker/docker-compose"
+    
+    if docker-compose up -d; then
+        log_success "Analytics cluster deployed!"
+        log_info "Access: docker exec -it exapg-coordinator psql -U postgres"
+    else
+        log_error "Deployment failed"
+    fi
+}
+
+simple_check_status() {
+    log_info "ExaPG Status:"
+    docker ps --filter "name=exapg" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || log_info "No containers running"
+}
+
+simple_database_shell() {
+    if docker ps --filter "name=exapg-coordinator" --format "{{.Names}}" | grep -q "exapg-coordinator"; then
+        docker exec -it exapg-coordinator psql -U postgres -d postgres
+    else
+        log_error "No database running. Use './scripts/cli/exapg simple deploy' first"
+    fi
+}
+
+simple_stop_services() {
+    log_info "Stopping ExaPG services..."
+    docker stop $(docker ps -q --filter "name=exapg") 2>/dev/null || log_info "No containers to stop"
+    docker rm $(docker ps -aq --filter "name=exapg") 2>/dev/null || log_info "No containers to remove"
+    log_success "Services stopped"
+}
+
+simple_run_tests() {
+    log_info "Running ExaPG tests..."
+    if [[ -f "${PROJECT_ROOT}/scripts/test-exapg.sh" ]]; then
+        "${PROJECT_ROOT}/scripts/test-exapg.sh" docker
+    else
+        log_error "Test script not found at scripts/test-exapg.sh"
+    fi
+}
+
+simple_show_help() {
+    cat << 'EOF'
+ExaPG Simple CLI Mode
+
+USAGE:
+  ./scripts/cli/exapg simple [command]
+
+COMMANDS:
+  deploy      Deploy analytics cluster
+  status      Check running services
+  shell       Connect to database
+  stop        Stop all services
+  test        Run tests
+  help        Show this help
+
+EXAMPLES:
+  ./scripts/cli/exapg simple deploy    # Start analytics cluster
+  ./scripts/cli/exapg simple status    # Check what's running
+  ./scripts/cli/exapg simple shell     # Connect to database
+
+DATABASE ACCESS:
+  Host: localhost:5432
+  User: postgres
+  Password: postgres
+  Database: postgres
+
+To switch to modern interface: ./scripts/cli/exapg
+EOF
+}
+
+# Handle simple mode
+handle_simple_mode() {
+    cd "$PROJECT_ROOT" || exit 1
+    
+    case "${1:-help}" in
+        "deploy"|"start") simple_deploy_cluster ;;
+        "status") simple_check_status ;;
+        "shell"|"psql") simple_database_shell ;;
+        "stop") simple_stop_services ;;
+        "test") simple_run_tests ;;
+        "help"|"--help"|"-h") simple_show_help ;;
+        *) 
+            log_error "Unknown simple command: $1"
+            simple_show_help
+            exit 1
+            ;;
+    esac
+}
+
+# Start modern dialog interface
+start_modern_interface() {
+    local modern_ui_script="$PROJECT_ROOT/scripts/cli/terminal-ui.sh"
+    
+    if [[ -f "$modern_ui_script" ]]; then
+        log_info "Starting modern dialog interface..."
+        exec "$modern_ui_script" "$@"
+    else
+        log_error "Modern interface not found at: $modern_ui_script"
+        log_warning "Falling back to simple mode..."
+        echo
+        simple_show_help
+        exit 1
+    fi
+}
+
+# Check if dialog tools are available for modern interface
+check_dialog_availability() {
+    if ! command -v dialog >/dev/null 2>&1 && ! command -v whiptail >/dev/null 2>&1; then
+        log_warning "Dialog tools not available. Installing dialog..."
+        if command -v yum >/dev/null 2>&1; then
+            sudo yum install -y dialog 2>/dev/null || true
+        elif command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get install -y dialog 2>/dev/null || true
+        fi
+        
+        # Check again after installation attempt
+        if ! command -v dialog >/dev/null 2>&1 && ! command -v whiptail >/dev/null 2>&1; then
+            log_warning "Could not install dialog tools. Using simple mode."
+            return 1
+        fi
+    fi
+    return 0
+}
+
+# Main entry point
+main() {
+    cd "$PROJECT_ROOT" || exit 1
+    
+    # Setup environment if needed
+    if [[ -f ".env.template" && ! -f ".env" ]]; then
+        cp ".env.template" ".env"
+        log_info "Created .env from template"
+    fi
+    
+    # Parse arguments
+    case "${1:-}" in
+        "simple")
+            shift
+            handle_simple_mode "$@"
+            ;;
+        "help"|"--help"|"-h")
+            show_unified_help
+            ;;
+        "version"|"--version")
+            echo "ExaPG CLI v${CLI_VERSION}"
+            echo "PostgreSQL Analytical Database Management Tool"
+            echo "Unified interface supporting both modern dialog and simple CLI modes"
+            ;;
+        *)
+            # Default: Try to start modern interface
+            if check_dialog_availability; then
+                start_modern_interface "$@"
+            else
+                log_warning "Modern interface not available. Starting simple mode."
+                echo
+                handle_simple_mode "${1:-help}"
+            fi
+            ;;
+    esac
+}
+
+# Run main with all arguments
+main "$@" 

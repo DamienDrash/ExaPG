@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-# ExaPG Single-Node Citus Initialization Script
-# Optimiert für Single-Node Analytics mit permanenten Fixes
+# ExaPG Simple Analytics Initialization Script
+# PostgreSQL 15 mit Analytics-Extensions (ohne Citus)
 
-echo "🚀 Initialisiere ExaPG Single-Node Analytics Cluster..."
+echo "🚀 Initialisiere ExaPG Simple Analytics System..."
 
 # Warte bis PostgreSQL bereit ist
 until pg_isready -U postgres; do
@@ -14,27 +14,15 @@ done
 
 echo "✓ PostgreSQL ist bereit"
 
-# Erstelle Citus Extension
+# Erstelle Extensions und Analytics-Schema
 psql -v ON_ERROR_STOP=1 --username postgres <<-EOSQL
-    -- Erstelle Citus Extension
-    CREATE EXTENSION IF NOT EXISTS citus;
-    
-    -- Erstelle zusätzliche Extensions für Analytics
+    -- Erstelle Analytics Extensions
     CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
     CREATE EXTENSION IF NOT EXISTS btree_gin;
     CREATE EXTENSION IF NOT EXISTS btree_gist;
     CREATE EXTENSION IF NOT EXISTS pg_trgm;
     CREATE EXTENSION IF NOT EXISTS uuid-ossp;
-    
-    -- Setze Single-Node Citus Konfiguration
-    ALTER SYSTEM SET citus.node_conninfo = 'sslmode=disable';
-    ALTER SYSTEM SET citus.shard_count = 4;
-    ALTER SYSTEM SET citus.shard_replication_factor = 1;
-    ALTER SYSTEM SET citus.node_connection_timeout = 30000;
-    ALTER SYSTEM SET citus.max_worker_nodes_tracked = 32;
-    
-    -- Lade Konfiguration neu
-    SELECT pg_reload_conf();
+    CREATE EXTENSION IF NOT EXISTS hstore;
     
     -- Erstelle Analytics-Schema
     CREATE SCHEMA IF NOT EXISTS analytics;
@@ -51,28 +39,22 @@ psql -v ON_ERROR_STOP=1 --username postgres <<-EOSQL
         created_at TIMESTAMPTZ DEFAULT NOW()
     );
     
-    -- Erstelle Columnar Demo Tabelle
+    -- Erstelle Metrics Tabelle
     CREATE TABLE IF NOT EXISTS analytics.demo_metrics (
-        id BIGSERIAL,
+        id BIGSERIAL PRIMARY KEY,
         metric_name VARCHAR(100),
         metric_value NUMERIC,
         tags JSONB,
         timestamp TIMESTAMPTZ DEFAULT NOW()
     );
     
-    -- Setze Columnar Storage für Metrics
-    SELECT alter_table_set_access_method('analytics.demo_metrics', 'columnar');
-    
-    -- Erstelle Reference Table für Lookups
+    -- Erstelle Event Types Lookup Tabelle
     CREATE TABLE IF NOT EXISTS analytics.event_types (
         id SERIAL PRIMARY KEY,
         name VARCHAR(50) UNIQUE NOT NULL,
         description TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
     );
-    
-    -- Mache event_types zu einer Reference Table
-    SELECT create_reference_table('analytics.event_types');
     
     -- Füge Demo-Daten ein
     INSERT INTO analytics.event_types (name, description) VALUES
@@ -101,6 +83,9 @@ psql -v ON_ERROR_STOP=1 --username postgres <<-EOSQL
     CREATE INDEX IF NOT EXISTS idx_demo_events_user ON analytics.demo_events(user_id);
     CREATE INDEX IF NOT EXISTS idx_demo_events_created ON analytics.demo_events(created_at);
     CREATE INDEX IF NOT EXISTS idx_demo_events_data ON analytics.demo_events USING GIN(event_data);
+    CREATE INDEX IF NOT EXISTS idx_demo_metrics_name ON analytics.demo_metrics(metric_name);
+    CREATE INDEX IF NOT EXISTS idx_demo_metrics_timestamp ON analytics.demo_metrics(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_demo_metrics_tags ON analytics.demo_metrics USING GIN(tags);
     
     -- Erstelle Views für Analytics
     CREATE OR REPLACE VIEW analytics.event_summary AS
@@ -124,10 +109,44 @@ psql -v ON_ERROR_STOP=1 --username postgres <<-EOSQL
     WHERE user_id IS NOT NULL
     GROUP BY user_id;
     
-    -- Zeige Cluster-Status
-    SELECT 'ExaPG Single-Node Analytics Cluster erfolgreich initialisiert!' as status;
+    CREATE OR REPLACE VIEW analytics.metrics_summary AS
+    SELECT 
+        metric_name,
+        COUNT(*) as measurement_count,
+        AVG(metric_value) as avg_value,
+        MIN(metric_value) as min_value,
+        MAX(metric_value) as max_value,
+        MIN(timestamp) as first_measurement,
+        MAX(timestamp) as last_measurement
+    FROM analytics.demo_metrics
+    GROUP BY metric_name;
+    
+    -- Erstelle Partitionierte Tabelle für Time-Series
+    CREATE TABLE IF NOT EXISTS analytics.time_series_data (
+        id BIGSERIAL,
+        timestamp TIMESTAMPTZ NOT NULL,
+        metric_name VARCHAR(100) NOT NULL,
+        value NUMERIC NOT NULL,
+        tags JSONB,
+        PRIMARY KEY (id, timestamp)
+    ) PARTITION BY RANGE (timestamp);
+    
+    -- Erstelle Partitionen für aktuelle und nächste Monate
+    CREATE TABLE IF NOT EXISTS analytics.time_series_data_current PARTITION OF analytics.time_series_data
+    FOR VALUES FROM (date_trunc('month', CURRENT_DATE)) TO (date_trunc('month', CURRENT_DATE + INTERVAL '1 month'));
+    
+    CREATE TABLE IF NOT EXISTS analytics.time_series_data_next PARTITION OF analytics.time_series_data
+    FOR VALUES FROM (date_trunc('month', CURRENT_DATE + INTERVAL '1 month')) TO (date_trunc('month', CURRENT_DATE + INTERVAL '2 months'));
+    
+    -- Zeige System-Status
+    SELECT 'ExaPG Simple Analytics System erfolgreich initialisiert!' as status;
     SELECT version() as postgresql_version;
-    SELECT citus_version() as citus_version;
+    
+    -- Zeige verfügbare Extensions
+    SELECT name, default_version, installed_version 
+    FROM pg_available_extensions 
+    WHERE installed_version IS NOT NULL
+    ORDER BY name;
     
     -- Zeige verfügbare Tabellen
     SELECT schemaname, tablename, tableowner 
@@ -137,8 +156,8 @@ psql -v ON_ERROR_STOP=1 --username postgres <<-EOSQL
     
 EOSQL
 
-echo "✅ ExaPG Single-Node Analytics Cluster erfolgreich initialisiert!"
+echo "✅ ExaPG Simple Analytics System erfolgreich initialisiert!"
 echo "📊 Analytics-Schema erstellt mit Demo-Daten"
-echo "🗂️  Columnar Storage für Metrics aktiviert"
-echo "🔗 Reference Tables für Lookups konfiguriert"
+echo "🗂️  Partitionierte Time-Series-Tabellen konfiguriert"
+echo "📈 Analytics Views für Reporting verfügbar"
 echo "🚀 System bereit für Analytics-Workloads!" 

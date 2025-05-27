@@ -9,7 +9,7 @@ x-postgres-service: &postgres-service
   image: exapg:latest
   build:
     context: ../..
-    dockerfile: docker/Dockerfile
+    dockerfile: docker/Dockerfile.simple
   networks:
     - exapg-network
   environment:

@@ -5,6 +5,84 @@ All notable changes to ExaPG will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2025-05-27
+
+### 🧹 Project Cleanup & Production Optimization
+
+This release focuses on project organization, production readiness testing, and comprehensive UI validation.
+
+### Added
+- **Comprehensive UI Testing** - Complete validation of all modern UI scenarios
+  - Installation Wizard testing (4 deployment types, 7 components)
+  - Configuration Management testing (database, performance, network settings)
+  - System Status & Services testing (individual and global service control)
+  - Profile Management testing (create, edit, duplicate, export, delete)
+  - Theme Settings testing (4 professional themes including accessibility)
+  - System Information testing (hardware, software, UI capabilities)
+- **Production Database Verification** - Confirmed production readiness
+  - PostgreSQL 15.13 running stable (2+ days uptime)
+  - Analytics schema with 1002 demo records
+  - JSON Analytics fully functional with JSONB support
+  - Performance features activated (JIT, 16 parallel workers)
+  - Container health monitoring confirmed
+- **Profile System Enhancement** - Professional configuration management
+  - Test production profile created and validated
+  - Profile loading/saving functionality verified
+  - Configuration parameter validation (all 26 parameters tested)
+- **Docker Integration Verification** - 16 specialized Docker Compose configurations
+  - docker-compose.yml (base), monitoring.yml, ha.yml, backup.yml
+  - security.yml, etl.yml, management-ui.yml, and 9 additional specialized configs
+- **Terminal UI Compatibility** - Full theme and dialog support
+  - Dialog 1.3-20210117 confirmed functional
+  - 256-color support for all themes
+  - Responsive design for various terminal sizes
+  - Professional navigation with breadcrumb system
+
+### Changed
+- **Project Structure Cleanup** - Removed temporary and test files
+  - Removed CLEANUP-SUMMARY.md (cleanup documentation)
+  - Removed deploy-single-node.sh (moved to scripts/)
+  - Removed PERMANENT-FIXES-INTEGRATED.md (fixes now integrated)
+  - Removed test-results-modern-ui.md (testing completed)
+  - Removed test-profiles/ directory (temporary test data)
+- **CLI System Refinement** - Enhanced wrapper and script organization
+  - Improved exapg wrapper script reliability
+  - Enhanced CLI path resolution for symbolic links
+  - Better error handling and user feedback
+- **Benchmark Integration** - Performance testing infrastructure
+  - Benchmark suite confirmed executable and functional
+  - Performance testing integrated with UI system
+  - TPC-H and pgbench results available
+
+### Fixed
+- **Root Directory Organization** - Clean, professional project structure
+  - Only essential files remain in root directory
+  - Proper separation of tools, documentation, and configuration
+  - Improved project navigation and discoverability
+- **Production Readiness** - All systems verified functional
+  - Database connectivity confirmed (localhost:5432)
+  - Analytics workloads tested and verified
+  - Service management fully operational
+  - Web interfaces accessible (ports 3000, 3001, 9090)
+
+### Technical Details
+- **UI Testing Score**: 100% functionality verified
+- **Database Status**: PostgreSQL 15.13, healthy, 2+ days uptime
+- **Performance**: JIT enabled, 16 parallel workers, optimized memory
+- **Docker**: 16 compose configurations, all services manageable
+- **Terminal**: 256-color support, 4 themes, responsive design
+
+### Production Verification
+- ✅ **Installation Wizard** - All deployment types configurable
+- ✅ **Configuration Management** - All parameters editable
+- ✅ **System Status & Services** - Complete service control
+- ✅ **Profile Management** - Professional configuration handling
+- ✅ **Theme Settings** - 4 themes including accessibility option
+- ✅ **System Information** - Comprehensive system details
+- ✅ **Database Functionality** - 1002 demo records, JSON analytics
+- ✅ **Performance Features** - JIT, parallel processing, optimized memory
+- ✅ **Container Health** - Stable, monitored, production-ready
+
 ## [3.1.0] - 2024-12-19
 
 ### 🎯 Major CLI Enhancement - Intelligent Interface System

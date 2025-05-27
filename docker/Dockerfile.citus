@@ -20,7 +20,7 @@ RUN apt-get update \
     && curl https://install.citusdata.com/community/deb.sh | bash \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        postgresql-15-citus-12 \
+        postgresql-15-citus-13.0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

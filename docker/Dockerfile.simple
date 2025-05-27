@@ -1,0 +1,61 @@
+# ===================================================================
+# ExaPG Simple Single-Node Analytics Dockerfile
+# PostgreSQL 15 mit Analytics-Extensions (ohne Citus)
+# ===================================================================
+
+FROM postgres:15
+
+# ===================================================================
+# Install Analytics Extensions
+# ===================================================================
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    postgresql-contrib-15 \
+    postgresql-15-pg-stat-kcache \
+    && rm -rf /var/lib/apt/lists/*
+
+# ===================================================================
+# Konfiguriere shared_preload_libraries
+# ===================================================================
+RUN echo "shared_preload_libraries = 'pg_stat_statements'" >> /usr/share/postgresql/postgresql.conf.sample
+
+# ===================================================================
+# Erstelle Verzeichnisse mit korrekten Berechtigungen
+# ===================================================================
+RUN mkdir -p /etc/postgresql/conf.d \
+    && mkdir -p /var/log/postgresql \
+    && mkdir -p /scripts \
+    && chown -R postgres:postgres /etc/postgresql \
+    && chown -R postgres:postgres /var/log/postgresql \
+    && chown -R postgres:postgres /scripts
+
+# ===================================================================
+# Kopiere Konfigurationsdateien
+# ===================================================================
+COPY --chown=postgres:postgres config/postgresql/postgresql-coordinator.conf /etc/postgresql/postgresql.conf
+COPY --chown=postgres:postgres config/postgresql/pg_hba.conf /etc/postgresql/pg_hba.conf
+COPY --chown=postgres:postgres config/init/init-simple.sh /docker-entrypoint-initdb.d/init.sh
+COPY --chown=postgres:postgres scripts/ /scripts/
+COPY --chown=postgres:postgres sql/ /sql/
+
+# ===================================================================
+# Setze Umgebungsvariablen
+# ===================================================================
+ENV POSTGRES_INITDB_ARGS="--data-checksums --locale=en_US.UTF-8"
+ENV POSTGRES_HOST_AUTH_METHOD=md5
+
+# ===================================================================
+# Healthcheck
+# ===================================================================
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD pg_isready -U postgres || exit 1
+
+# ===================================================================
+# Expose Port und starte PostgreSQL
+# ===================================================================
+EXPOSE 5432
+
+CMD ["postgres", \
+    "-c", "config_file=/etc/postgresql/postgresql.conf", \
+    "-c", "hba_file=/etc/postgresql/pg_hba.conf", \
+    "-c", "shared_preload_libraries=pg_stat_statements"] 

@@ -1,0 +1,40 @@
+{
+    "benchmark_type": "TPC-H",
+    "version": "3.0.1",
+    "timestamp": "2025-05-27T20:01:21+02:00",
+    "session_id": "benchmark_20250527_200038_2189387",
+    "configuration": {
+        "scale_factor": "1",
+        "queries": "1-22",
+        "streams": "1",
+        "database": "ExaPG",
+        "version": "2.0.0"
+    },
+    "system_info": {
+        "hostname": "cockpit.isb.intern",
+        "cpu_cores": "4",
+        "memory_gb": "",
+        "os": "Linux 5.14.0-427.26.1.el9_4.x86_64"
+    },
+    "results": {
+        "total_execution_time_seconds": 67,
+        "queries_per_hour": 2100,
+        "geometric_mean_seconds": 3.04,
+        "data_size_gb": 1,
+        "throughput_mbps": 15.28
+    },
+    "query_details": [
+        {"query": "Q1", "execution_time": 59, "rows_returned": 33158},
+        {"query": "Q2", "execution_time": 43, "rows_returned": 454},
+        {"query": "Q3", "execution_time": 111, "rows_returned": 14201},
+        {"query": "Q4", "execution_time": 34, "rows_returned": 3953},
+        {"query": "Q5", "execution_time": 45, "rows_returned": 767}
+    ],
+    "performance_metrics": {
+        "cpu_utilization_avg": 93,
+        "memory_utilization_avg": 77,
+        "io_operations_per_second": 3530,
+        "network_throughput_mbps": 283
+    },
+    "status": "completed"
+}

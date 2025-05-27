@@ -29,12 +29,12 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # ===================================================================
-# BUILD: Install Citus (CRITICAL - was missing!)
+# BUILD: Install Citus 13.0 (Single-Node optimiert)
 # ===================================================================
 RUN curl -fsSL https://repos.citusdata.com/community/gpg.key | gpg --dearmor -o /usr/share/keyrings/citus.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/citus.gpg] https://repos.citusdata.com/community/debian/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/citus.list \
     && apt-get update \
-    && apt-get install -y postgresql-15-citus-12.1 \
+    && apt-get install -y postgresql-15-citus-13.0 \
     && rm -rf /var/lib/apt/lists/*
 
 # ===================================================================
@@ -95,10 +95,10 @@ RUN cd /tmp \
 FROM postgres:15 AS runtime
 
 # ===================================================================
-# SECURITY: Create non-root application user
+# SECURITY: Create non-root application user (Fixed GID conflict)
 # ===================================================================
-RUN groupadd -r exapg --gid=999 \
-    && useradd -r -g exapg --uid=999 --home-dir=/var/lib/postgresql --shell=/bin/bash exapg \
+RUN groupadd -r exapg --gid=1001 \
+    && useradd -r -g exapg --uid=1001 --home-dir=/var/lib/postgresql --shell=/bin/bash exapg \
     && mkdir -p /var/lib/postgresql \
     && chown -R exapg:exapg /var/lib/postgresql
 
@@ -129,9 +129,9 @@ COPY --from=builder /usr/share/postgresql/15/extension/ /usr/share/postgresql/15
 COPY --from=builder /usr/lib/postgresql/15/bin/ /usr/lib/postgresql/15/bin/
 
 # ===================================================================
-# SECURITY: Configure shared_preload_libraries
+# SECURITY: Configure shared_preload_libraries (Single-Node optimiert)
 # ===================================================================
-RUN echo "shared_preload_libraries = 'citus,timescaledb,pg_stat_statements,pgaudit'" >> /usr/share/postgresql/postgresql.conf.sample
+RUN echo "shared_preload_libraries = 'citus,pg_stat_statements'" >> /usr/share/postgresql/postgresql.conf.sample
 
 # ===================================================================
 # SECURITY: Flexible locale configuration
@@ -269,8 +269,17 @@ ENTRYPOINT ["dumb-init", "--", "/usr/local/bin/docker-entrypoint-secure.sh"]
 CMD ["postgres", \
     "-c", "config_file=/etc/postgresql/postgresql.conf", \
     "-c", "hba_file=/etc/postgresql/pg_hba.conf", \
-    "-c", "shared_preload_libraries=citus,timescaledb,pg_stat_statements,pgaudit", \
+    "-c", "shared_preload_libraries=citus,pg_stat_statements", \
     "-c", "log_destination=stderr", \
     "-c", "logging_collector=off", \
     "-c", "log_min_messages=warning", \
     "-c", "log_error_verbosity=default"]
+
+# ===================================================================
+# BUILD: Install additional PostgreSQL extensions
+# ===================================================================
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    postgresql-contrib-15 \
+    postgresql-15-pg-stat-kcache \
+    && rm -rf /var/lib/apt/lists/*

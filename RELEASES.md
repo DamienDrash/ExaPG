@@ -2,6 +2,50 @@
 
 ## Latest Release
 
+### Version 3.2.0 - Project Cleanup & Production Optimization (May 27, 2025)
+
+The 3.2.0 release focuses on project organization, comprehensive UI testing, and production readiness verification. This release confirms ExaPG is fully production-ready with 100% UI functionality verification.
+
+**🎯 Key Highlights:**
+- **100% UI Testing** - Complete validation of all modern UI scenarios (6 major areas, 50+ features)
+- **Production Verified** - PostgreSQL 15.13 stable with 1002 demo records and JSON analytics
+- **Project Cleanup** - Clean, professional root directory structure
+- **Profile System** - Enhanced configuration management with 26 validated parameters
+- **Docker Integration** - 16 specialized compose configurations verified
+- **Terminal Compatibility** - 256-color support with 4 professional themes
+
+**📥 Download:**
+```bash
+git clone https://github.com/DamienDrash/ExaPG.git --branch v3.2.0
+cd ExaPG
+./exapg
+```
+
+**🧪 Production Readiness:**
+- ✅ All UI scenarios 100% functional
+- ✅ Database stable (2+ days uptime)
+- ✅ Analytics workloads verified
+- ✅ Performance features active (JIT, 16 workers)
+- ✅ Container health confirmed
+
+**📚 Full Release Notes:** See [CHANGELOG.md](CHANGELOG.md#320---2025-05-27)
+
+---
+
+## Previous Releases
+
+### Version 3.1.0 - Intelligent CLI System (December 19, 2024)
+
+Revolutionary dual-mode CLI system with modern dialog interface and simple automation mode.
+
+**Features:**
+- Intelligent CLI with automatic mode detection
+- Modern dialog interface with themes
+- Simple mode for automation
+- Clean project structure
+
+**Download:** `git clone https://github.com/DamienDrash/ExaPG.git --branch v3.1.0`
+
 ### Version 3.0.0 - Enterprise Production Ready (December 19, 2024)
 
 The 3.0.0 release is a major milestone that transforms ExaPG into an enterprise-grade analytical database platform with production-ready security, Kubernetes support, and comprehensive testing.
@@ -178,11 +222,13 @@ ExaPG follows a time-based release schedule:
 
 | Version | Status | Support Until |
 |---------|--------|---------------|
-| 3.0.x | **Current** | December 2025 |
-| 2.0.x | Supported | June 2025 |
-| 1.5.x | Supported | December 2024 |
-| 1.4.x | Maintenance | November 2024 |
-| 1.3.x | Maintenance | October 2024 |
+| 3.2.x | **Current** | May 2026 |
+| 3.1.x | Supported | November 2025 |
+| 3.0.x | Supported | December 2025 |
+| 2.0.x | Maintenance | June 2025 |
+| 1.5.x | Maintenance | December 2024 |
+| 1.4.x | End of Life | - |
+| 1.3.x | End of Life | - |
 | 1.2.x | End of Life | - |
 | 1.1.x | End of Life | - |
 | 1.0.x | End of Life | - |

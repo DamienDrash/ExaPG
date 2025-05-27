@@ -1,0 +1,67 @@
+# ===================================================================
+# ExaPG Single-Node Analytics Dockerfile
+# Optimiert für Single-Node Citus mit permanenten Fixes
+# ===================================================================
+
+FROM postgres:15
+
+# ===================================================================
+# Install Citus 12.1 und notwendige Extensions (verfügbare Version)
+# ===================================================================
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    postgresql-contrib-15 \
+    && curl -fsSL https://repos.citusdata.com/community/gpg.key | gpg --dearmor -o /usr/share/keyrings/citus.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/citus.gpg] https://repos.citusdata.com/community/debian/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/citus.list \
+    && apt-get update \
+    && apt-get install -y postgresql-15-citus-12.1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ===================================================================
+# Konfiguriere shared_preload_libraries
+# ===================================================================
+RUN echo "shared_preload_libraries = 'citus,pg_stat_statements'" >> /usr/share/postgresql/postgresql.conf.sample
+
+# ===================================================================
+# Erstelle Verzeichnisse mit korrekten Berechtigungen
+# ===================================================================
+RUN mkdir -p /etc/postgresql/conf.d \
+    && mkdir -p /var/log/postgresql \
+    && mkdir -p /scripts \
+    && chown -R postgres:postgres /etc/postgresql \
+    && chown -R postgres:postgres /var/log/postgresql \
+    && chown -R postgres:postgres /scripts
+
+# ===================================================================
+# Kopiere Konfigurationsdateien
+# ===================================================================
+COPY --chown=postgres:postgres config/postgresql/ /etc/postgresql/
+COPY --chown=postgres:postgres config/init/ /docker-entrypoint-initdb.d/
+COPY --chown=postgres:postgres scripts/ /scripts/
+COPY --chown=postgres:postgres sql/ /sql/
+
+# ===================================================================
+# Setze Umgebungsvariablen
+# ===================================================================
+ENV POSTGRES_INITDB_ARGS="--data-checksums --locale=en_US.UTF-8"
+ENV POSTGRES_HOST_AUTH_METHOD=md5
+
+# ===================================================================
+# Healthcheck
+# ===================================================================
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD pg_isready -U postgres || exit 1
+
+# ===================================================================
+# Expose Port und starte PostgreSQL
+# ===================================================================
+EXPOSE 5432
+
+CMD ["postgres", \
+    "-c", "config_file=/etc/postgresql/postgresql-coordinator.conf", \
+    "-c", "hba_file=/etc/postgresql/pg_hba.conf", \
+    "-c", "shared_preload_libraries=citus,pg_stat_statements"] 
